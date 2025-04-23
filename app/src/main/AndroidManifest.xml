@@ -12,9 +12,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication"
         tools:targetApi="31">
-        <activity
-            android:name=".Activity.child"
-            android:exported="false" />
         <activity android:name=".Activity.LoginActivity"
             android:exported="true">
             <intent-filter>
@@ -26,6 +23,7 @@
         <activity android:name=".Activity.RegisterActivity"/>
         <activity android:name=".Activity.MainActivity" />
         <activity android:name=".Activity.CreatePostActivity" />
+        <activity android:name=".Activity.SearchActivity" />
     </application>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
