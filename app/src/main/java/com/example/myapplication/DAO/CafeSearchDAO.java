@@ -1,5 +1,7 @@
 package com.example.myapplication.DAO;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 
 import com.example.myapplication.Model.CafeModel;
@@ -9,13 +11,18 @@ import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CafeSearchDAO {
     private final FirebaseFirestore db;
-
-    public CafeSearchDAO() {
+    private final SharedPreferences prefs;
+    private final String PREF_NAME = "UserSession";
+    private final String KEY_ID = "user_id";
+    public CafeSearchDAO(Context context) {
         db = FirebaseFirestore.getInstance();
+        prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 
     public interface CafeListCallback {
@@ -38,6 +45,56 @@ public class CafeSearchDAO {
                 })
                 .addOnFailureListener(callback::onError);
     }
+
+    public interface SearchHistoryCallback {
+        void onResult(List<String> history);
+        void onError(Exception e);
+    }
+
+    public void getSearchHistory(SearchHistoryCallback callback) {
+        int userId = prefs.getInt(KEY_ID, -1);
+        if (userId == -1) {
+            callback.onError(new Exception("Người dùng chưa đăng nhập hoặc không tìm thấy ID"));
+            return;
+        }
+
+        db.collection("search_history")
+                .whereEqualTo("id_user", userId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<String> result = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        String keyword = doc.getString("search_query");
+                        if (keyword != null) result.add(keyword);
+                    }
+                    callback.onResult(result);
+                })
+                .addOnFailureListener(callback::onError);
+    }
+
+
+    public void saveSearchHistory(String keyword) {
+        int userId = prefs.getInt(KEY_ID, -1);
+        if (userId == -1) return;
+
+        // Đếm số lượng document hiện có để lấy id mới
+        db.collection("search_history")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    int newId = queryDocumentSnapshots.size() + 1;
+
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("id", newId);
+                    data.put("id_user", userId);
+                    data.put("search_query", keyword);
+
+                    db.collection("search_history").add(data)
+                            .addOnSuccessListener(documentReference -> Log.d("SearchDAO", "Saved search history with ID: " + newId))
+                            .addOnFailureListener(e -> Log.e("SearchDAO", "Failed to save search history", e));
+                })
+                .addOnFailureListener(e -> Log.e("SearchDAO", "Failed to count existing histories", e));
+    }
+
 
     public void filterCafes(boolean requireWifi, boolean requireWorkspace, boolean requireOpenNow,
                             double userLat, double userLon, CafeListCallback callback) {
@@ -78,7 +135,7 @@ public class CafeSearchDAO {
                 .addOnFailureListener(callback::onError);
     }
 
-    // 👉 Parse 1 document từ Firestore thành CafeModel
+    // Parse 1 document từ Firestore thành CafeModel
     private CafeModel parseCafe(DocumentSnapshot doc, double userLat, double userLon) {
         try {
             GeoPoint geo = doc.getGeoPoint("geopoint");

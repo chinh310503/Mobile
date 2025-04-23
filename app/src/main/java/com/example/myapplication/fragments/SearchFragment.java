@@ -15,6 +15,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.content.Intent;
+import android.app.Activity;
+import com.example.myapplication.Activity.SearchActivity;
+
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -52,6 +56,8 @@ public class SearchFragment extends Fragment implements LocationListener {
     private boolean openNowSelected;
     private double currentDistanceFilter;
     private double currentPriceFilter;
+    private static final int REQUEST_SEARCH = 1001;
+
 
     @SuppressLint("MissingPermission")
     @Nullable
@@ -72,13 +78,24 @@ public class SearchFragment extends Fragment implements LocationListener {
         TextInputLayout searchLayout = view.findViewById(R.id.searchText);
         searchEditText = searchLayout.getEditText();
 
+        if (searchEditText != null) {
+            searchEditText.setFocusable(false);
+            searchEditText.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), SearchActivity.class);
+                String currentKeyword = searchEditText.getText().toString().trim();
+                intent.putExtra("CURRENT_KEYWORD", currentKeyword);
+                startActivityForResult(intent, REQUEST_SEARCH);
+            });
+        }
+
+
         MaterialButton btnWifi = view.findViewById(R.id.btn_wifi);
         MaterialButton btnWorkspace = view.findViewById(R.id.btn_workspace);
         MaterialButton btnOpenNow = view.findViewById(R.id.btn_open_now);
         MaterialButton btnSortDistance = view.findViewById(R.id.btn_sort_distance);
         MaterialButton btnSortPrice = view.findViewById(R.id.btn_sort_price);
 
-        cafeSearchDAO = new CafeSearchDAO();
+        cafeSearchDAO = new CafeSearchDAO(requireContext());
         cafeAdapter = new CafeAdapter(cafeList, requireContext());
         recyclerView.setAdapter(cafeAdapter);
 
@@ -90,8 +107,6 @@ public class SearchFragment extends Fragment implements LocationListener {
             if (lastLocation != null) {
                 userLatitude = lastLocation.getLatitude();
                 userLongitude = lastLocation.getLongitude();
-//                Log.d("lat", String.valueOf(userLatitude));
-//                Log.d("lon", String.valueOf(userLongitude));
                 loadFilteredCafes();
             }
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
@@ -137,14 +152,6 @@ public class SearchFragment extends Fragment implements LocationListener {
             sheet.show(getChildFragmentManager(), sheet.getTag());
         });
 
-        if (searchEditText != null) {
-            searchEditText.addTextChangedListener(new TextWatcher() {
-                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-                @Override public void onTextChanged(CharSequence s, int start, int before, int count) { loadFilteredCafes(); }
-                @Override public void afterTextChanged(Editable s) {}
-            });
-        }
-
         return view;
     }
 
@@ -157,13 +164,13 @@ public class SearchFragment extends Fragment implements LocationListener {
                 List<CafeModel> filtered = new ArrayList<>();
 
                 for (CafeModel cafe : allCafes) {
-                    Log.d("min", String.valueOf(cafe.getMinPrice()));
-                    Log.d("min abc", String.valueOf(currentPriceFilter));
+//                    Log.d("min", String.valueOf(cafe.getDistance()));
+//                    Log.d("min abc", String.valueOf(currentDistanceFilter));
                     if (!keyword.isEmpty() && !cafe.getName().toLowerCase().contains(keyword.toLowerCase())) continue;
                     if (wifiSelected && !cafe.isWifiAvailable()) continue;
                     if (workspaceSelected && !cafe.isWorkSpace()) continue;
                     if (openNowSelected && !cafe.isOpen()) continue;
-                    if (currentDistanceFilter > 0 && cafe.getDistance() > currentDistanceFilter * 1000) continue;
+                    if (currentDistanceFilter > 0 && cafe.getDistance() > currentDistanceFilter) continue;
                     if (currentPriceFilter > 0 && cafe.getMinPrice() > currentPriceFilter * 1000) continue;
                     filtered.add(cafe);
                 }
@@ -216,6 +223,19 @@ public class SearchFragment extends Fragment implements LocationListener {
         userLongitude = location.getLongitude();
         loadFilteredCafes();
     }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_SEARCH && resultCode == Activity.RESULT_OK && data != null) {
+            String keyword = data.getStringExtra("SEARCH_KEYWORD");
+            if (searchEditText != null && keyword != null) {
+                searchEditText.setText(keyword);
+                loadFilteredCafes();
+            }
+        }
+    }
+
 
     @Override public void onStatusChanged(String provider, int status, Bundle extras) {}
     @Override public void onProviderEnabled(@NonNull String provider) {}
