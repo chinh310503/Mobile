@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>'
+    <color name="color_selected_background">#FFCDD2</color>
+    <color name="bottom_nav_icon_color">#757575</color>
+    <color name="gray">#808080</color>
+    <color name="button_default">#EEEEEE</color> <!-- Màu nền mặc định -->
+    <color name="button_pressed">#FF4040</color> <!-- Màu nền khi nhấn -->
+    <color name="button_ripple">#BDBDBD</color> <!-- Màu hiệu ứng ripple -->
+    <color name="teal_700">#018786</color>
+    <color name="gray_300">#E0E0E0</color>
+    <color name="brown">#6B3E26</color>
+
+</resources>

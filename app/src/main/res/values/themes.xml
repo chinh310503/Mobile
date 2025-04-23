@@ -1,0 +1,26 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.MyApplication" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+    </style>
+
+    <style name="Theme.MyApplication" parent="Base.Theme.MyApplication" />
+
+    <style name="CustomBottomNavStyle" parent="@style/Widget.MaterialComponents.BottomNavigationView">
+        <!-- Bỏ minHeight mặc định -->
+        <item name="android:minHeight">0dp</item>
+        <!-- Giảm/loại bỏ padding trên dưới -->
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+
+        <!-- Nếu muốn icon không di chuyển khi chọn -->
+        <item name="itemHorizontalTranslationEnabled">false</item>
+    </style>
+
+    <style name="RoundedCorners" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item> <!-- Điều chỉnh độ bo góc -->
+    </style>
+
+</resources>

@@ -1,0 +1,87 @@
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="4dp">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <!-- Hình ảnh quán cafe -->
+        <ImageView
+            android:id="@+id/imgCafe"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/home"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@color/white"/>
+
+        <!-- Tên quán -->
+        <TextView
+            android:id="@+id/txtCafeName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tên quán cafe"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginStart="12dp"
+            android:layout_toEndOf="@id/imgCafe"
+            android:layout_alignTop="@id/imgCafe"/>
+
+        <!-- Địa chỉ -->
+        <TextView
+            android:id="@+id/txtCafeAddress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Địa chỉ quán cafe"
+            android:textSize="14sp"
+            android:layout_below="@id/txtCafeName"
+            android:layout_toEndOf="@id/imgCafe"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"/>
+
+        <!-- Khoảng cách -->
+        <TextView
+            android:id="@+id/txtCafeDistance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cách bạn 1.2 km"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_below="@id/txtCafeAddress"
+            android:layout_toEndOf="@id/imgCafe"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"/>
+
+        <TextView
+            android:id="@+id/txtCafeStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mở cửa"
+            android:textSize="12sp"
+            android:textColor="@android:color/holo_green_dark"
+            android:layout_below="@id/txtCafeDistance"
+            android:layout_toEndOf="@id/imgCafe"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"/>
+
+        <!-- Nút Tym -->
+        <ImageView
+            android:id="@+id/btnFavorite"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/blank_heart"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:padding="4dp"/>
+
+    </RelativeLayout>
+
+</androidx.cardview.widget.CardView>

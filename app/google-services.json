@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1025707619207",
+    "project_id": "cafe-finding-app",
+    "storage_bucket": "cafe-finding-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1025707619207:android:0fc0823b0d9d9a0699d922",
+        "android_client_info": {
+          "package_name": "com.example.myapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAR76GXT1HmxzvhuFbvYVtuif7d4VcUeWs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
