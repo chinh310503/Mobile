@@ -74,7 +74,7 @@ public class CafeModel {
     public double getDistance() { return distance; }
     public void setDistance(double distance) { this.distance = distance; }
 
-    // 👉 Kiểm tra xem quán có đang mở cửa không
+    // Kiểm tra xem quán có đang mở cửa không
     public boolean isOpen() {
         try {
             String[] openSplit = openHours.split(":");

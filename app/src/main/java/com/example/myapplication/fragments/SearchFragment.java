@@ -30,6 +30,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.Adapter.CafeAdapter;
 import com.example.myapplication.DAO.CafeSearchDAO;
+import com.example.myapplication.DAO.FavoriteCafeDAO;
 import com.example.myapplication.Dialogs.DistanceFilterBottomSheet;
 import com.example.myapplication.Dialogs.PriceFilterBottomSheet;
 import com.example.myapplication.Model.CafeModel;
@@ -39,7 +40,9 @@ import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class SearchFragment extends Fragment implements LocationListener {
 
@@ -51,11 +54,14 @@ public class SearchFragment extends Fragment implements LocationListener {
     private List<CafeModel> cafeList;
     private EditText searchEditText;
     private CafeSearchDAO cafeSearchDAO;
+    private FavoriteCafeDAO cafeFavoriteDAO;
     private boolean wifiSelected;
     private boolean workspaceSelected;
     private boolean openNowSelected;
     private double currentDistanceFilter;
     private double currentPriceFilter;
+    private Set<Long> favoriteCafeIds;
+
     private static final int REQUEST_SEARCH = 1001;
 
 
@@ -69,6 +75,8 @@ public class SearchFragment extends Fragment implements LocationListener {
         openNowSelected = false;
         wifiSelected = false;
         cafeList = new ArrayList<>();
+        favoriteCafeIds = new HashSet<>();
+
 
         View view = inflater.inflate(R.layout.search_fragment, container, false);
 
@@ -96,6 +104,7 @@ public class SearchFragment extends Fragment implements LocationListener {
         MaterialButton btnSortPrice = view.findViewById(R.id.btn_sort_price);
 
         cafeSearchDAO = new CafeSearchDAO(requireContext());
+        cafeFavoriteDAO = new FavoriteCafeDAO(requireContext());
         cafeAdapter = new CafeAdapter(cafeList, requireContext());
         recyclerView.setAdapter(cafeAdapter);
 
@@ -150,6 +159,29 @@ public class SearchFragment extends Fragment implements LocationListener {
                 loadFilteredCafes();
             });
             sheet.show(getChildFragmentManager(), sheet.getTag());
+        });
+
+        cafeAdapter.setOnFavoriteClickListener((cafe, isFavoriteNow) -> {
+            long cafeId = cafe.getId();
+
+            if (isFavoriteNow) {
+                cafeFavoriteDAO.addFavorite(cafeId);
+            } else {
+                cafeFavoriteDAO.removeFavorite(cafeId);
+            }
+        });
+
+        cafeFavoriteDAO.getFavoritesByUserId(new FavoriteCafeDAO.FavoriteListCallback() {
+            @Override
+            public void onSuccess(Set<Long> favoriteIds) {
+                cafeAdapter.setFavoriteCafes(favoriteIds); // Truyền danh sách này vào Adapter
+                cafeAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e("Favorite", "Lỗi khi lấy danh sách yêu thích", e);
+            }
         });
 
         return view;

@@ -5,9 +5,11 @@ import android.content.SharedPreferences;
 import android.util.Log;
 
 import com.example.myapplication.Model.CafeModel;
+import com.example.myapplication.Session.SessionManager;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.GeoPoint;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
@@ -17,33 +19,15 @@ import java.util.Map;
 
 public class CafeSearchDAO {
     private final FirebaseFirestore db;
-    private final SharedPreferences prefs;
-    private final String PREF_NAME = "UserSession";
-    private final String KEY_ID = "user_id";
+    private final SessionManager sessionManager;
     public CafeSearchDAO(Context context) {
         db = FirebaseFirestore.getInstance();
-        prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        sessionManager = new SessionManager(context);
     }
 
     public interface CafeListCallback {
         void onResult(List<CafeModel> cafes);
         void onError(Exception e);
-    }
-
-    public void searchCafesByName(String keyword, double userLat, double userLon, CafeListCallback callback) {
-        db.collection("cafes")
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<CafeModel> cafeList = new ArrayList<>();
-                    for (QueryDocumentSnapshot doc : querySnapshot) {
-                        CafeModel cafe = parseCafe(doc, userLat, userLon);
-                        if (cafe != null && cafe.getName().toLowerCase().contains(keyword.toLowerCase())) {
-                            cafeList.add(cafe);
-                        }
-                    }
-                    callback.onResult(cafeList);
-                })
-                .addOnFailureListener(callback::onError);
     }
 
     public interface SearchHistoryCallback {
@@ -52,7 +36,7 @@ public class CafeSearchDAO {
     }
 
     public void getSearchHistory(SearchHistoryCallback callback) {
-        int userId = prefs.getInt(KEY_ID, -1);
+        int userId = sessionManager.getUserId();
         if (userId == -1) {
             callback.onError(new Exception("Người dùng chưa đăng nhập hoặc không tìm thấy ID"));
             return;
@@ -60,6 +44,8 @@ public class CafeSearchDAO {
 
         db.collection("search_history")
                 .whereEqualTo("id_user", userId)
+                .orderBy("id", Query.Direction.DESCENDING)
+                .limit(10)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<String> result = new ArrayList<>();
@@ -74,7 +60,7 @@ public class CafeSearchDAO {
 
 
     public void saveSearchHistory(String keyword) {
-        int userId = prefs.getInt(KEY_ID, -1);
+        int userId = sessionManager.getUserId();
         if (userId == -1) return;
 
         // Đếm số lượng document hiện có để lấy id mới
@@ -93,30 +79,6 @@ public class CafeSearchDAO {
                             .addOnFailureListener(e -> Log.e("SearchDAO", "Failed to save search history", e));
                 })
                 .addOnFailureListener(e -> Log.e("SearchDAO", "Failed to count existing histories", e));
-    }
-
-
-    public void filterCafes(boolean requireWifi, boolean requireWorkspace, boolean requireOpenNow,
-                            double userLat, double userLon, CafeListCallback callback) {
-        db.collection("cafes")
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<CafeModel> filteredList = new ArrayList<>();
-                    for (QueryDocumentSnapshot doc : querySnapshot) {
-                        CafeModel cafe = parseCafe(doc, userLat, userLon);
-                        if (cafe == null) continue;
-
-                        boolean match = (!requireWifi || cafe.isWifiAvailable())
-                                && (!requireWorkspace || cafe.isWorkSpace())
-                                && (!requireOpenNow || cafe.isOpen());
-
-                        if (match) {
-                            filteredList.add(cafe);
-                        }
-                    }
-                    callback.onResult(filteredList);
-                })
-                .addOnFailureListener(callback::onError);
     }
 
     public void getAllCafes(double userLat, double userLon, CafeListCallback callback) {
