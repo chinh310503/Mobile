@@ -18,14 +18,11 @@ public class CafeSuggestionAdapter extends RecyclerView.Adapter<CafeSuggestionAd
     public interface OnSuggestionClickListener {
         void onSuggestionClick(String name);
     }
-
-    private List<String> allSuggestions;
     private List<String> filteredSuggestions;
     private OnSuggestionClickListener listener;
 
     public CafeSuggestionAdapter(List<String> suggestions, OnSuggestionClickListener listener) {
-        this.allSuggestions = suggestions;
-        this.filteredSuggestions = new ArrayList<>(suggestions);
+        this.filteredSuggestions = suggestions;
         this.listener = listener;
     }
 
@@ -50,18 +47,10 @@ public class CafeSuggestionAdapter extends RecyclerView.Adapter<CafeSuggestionAd
         return filteredSuggestions.size();
     }
 
-    public void filter(String query) {
-        filteredSuggestions.clear();
-        if (query.isEmpty()) {
-            notifyDataSetChanged();
-            return;
-        }
+    public void updateSuggestions(List<String> newSuggestions) {
+        this.filteredSuggestions.clear();
+        this.filteredSuggestions.addAll(newSuggestions);
 
-        for (String s : allSuggestions) {
-            if (s.toLowerCase().contains(query.toLowerCase())) {
-                filteredSuggestions.add(s);
-            }
-        }
         notifyDataSetChanged();
     }
 
