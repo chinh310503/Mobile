@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+/// fffffffffffffffffffffffffffffffffff
 public class CafeSearchDAO {
     private final FirebaseFirestore db;
     private final SessionManager sessionManager;
