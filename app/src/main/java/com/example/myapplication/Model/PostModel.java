@@ -16,6 +16,7 @@ public class PostModel {
     public List<String> imageList;
     public int commentCount;
     public boolean isLiked;
+    public long timestamp;
 
     public PostModel() {
         this.comments = new ArrayList<>();
@@ -23,7 +24,7 @@ public class PostModel {
         this.isLiked = false;
     }
 
-    public PostModel(int id, String content, String userName, String userAvatar, String image, int likeCount, boolean isLiked) {
+    public PostModel(int id, String content, String userName, String userAvatar, String image, int likeCount, boolean isLiked, long timestamp) {
         this.id = id;
         this.content = content;
         this.userName = userName;
@@ -33,6 +34,7 @@ public class PostModel {
         this.comments = new ArrayList<>();
         this.imageList = new ArrayList<>();
         this.isLiked = isLiked;
+        this.timestamp = timestamp;  // Lưu thời gian tạo bài viết
     }
 
     public int getId() {
@@ -129,5 +131,12 @@ public class PostModel {
 
     public void setLiked(boolean liked) {
         isLiked = liked;
+    }
+    // Getter và Setter cho timestamp
+    public long getTimestamp() {
+        return timestamp;
+    }
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 }

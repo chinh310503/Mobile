@@ -2,6 +2,7 @@ package com.example.myapplication.Activity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -46,7 +47,7 @@ public class LoginActivity extends AppCompatActivity {
             userDAO.checkUser(email, password, user -> {
                 if (user != null) {
                     sessionManager.saveUserSession(user.getId(), user.getEmail(), user.getName(), user.getImg());
-
+                    Log.d("LoginActivity", "Current userId: " + user.getId());
                     Toast.makeText(LoginActivity.this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
                     startActivity(new Intent(LoginActivity.this, MainActivity.class));
                     finish();
