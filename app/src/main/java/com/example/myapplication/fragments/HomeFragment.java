@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.myapplication.Activity.CreatePostActivity;
+import com.example.myapplication.Activity.LoginActivity;
 import com.example.myapplication.Adapter.PostAdapter;
 import com.example.myapplication.DAO.PostDAO;
 import com.example.myapplication.Model.PostModel;
@@ -23,6 +25,7 @@ import com.example.myapplication.R;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.example.myapplication.Session.SessionManager;
 
 public class HomeFragment extends Fragment {
 
@@ -30,6 +33,7 @@ public class HomeFragment extends Fragment {
     private PostDAO postDAO;
     private List<PostModel> postList;
     private PostAdapter adapter;
+    private SessionManager sessionManager;
 
     public HomeFragment() {
         // Required empty public constructor
@@ -44,25 +48,35 @@ public class HomeFragment extends Fragment {
         rvPosts = view.findViewById(R.id.rvPosts);
         rvPosts.setLayoutManager(new LinearLayoutManager(getContext()));
 
+        sessionManager = new SessionManager(getContext()); // Khởi tạo SessionManager
         postDAO = new PostDAO();
         postList = new ArrayList<>();
         adapter = new PostAdapter(getContext(), postList);
         rvPosts.setAdapter(adapter);
 
+        // Chuyển sang màn hình tạo bài viết
         TextView tvCreatePost = view.findViewById(R.id.tvCreatePost);
         tvCreatePost.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), CreatePostActivity.class);
             startActivity(intent);
         });
 
-        loadPosts();
+        loadPosts(); // Load bài viết
 
         return view;
     }
 
     private void loadPosts() {
-        SharedPreferences prefs = requireContext().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
-        int userId = prefs.getInt("user_id", -1);
+        // Lấy userId từ SessionManager
+        int userId = sessionManager.getUserId(); // Lấy user_id từ session
+        Log.d("HomeFragment", "Current userId: " + userId);
+        // Nếu userId là -1 (chưa đăng nhập), thông báo lỗi hoặc điều hướng đến màn hình đăng nhập
+        if (userId == -1) {
+            Toast.makeText(getContext(), "Vui lòng đăng nhập để xem bài viết!", Toast.LENGTH_SHORT).show();
+            // Có thể điều hướng đến LoginActivity nếu chưa đăng nhập
+            startActivity(new Intent(getContext(), LoginActivity.class));
+            return;
+        }
 
         postDAO.getAllPosts(userId, new PostDAO.PostListCallback() {
             @Override
@@ -82,6 +96,8 @@ public class HomeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        loadPosts();
+        loadPosts(); // Tải lại bài viết khi quay lại fragment
     }
 }
+
+

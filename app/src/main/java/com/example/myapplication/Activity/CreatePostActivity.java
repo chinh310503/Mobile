@@ -3,6 +3,7 @@ package com.example.myapplication.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -18,7 +19,7 @@ import com.example.myapplication.R;
 import java.util.ArrayList;
 import java.util.List;
 
-import android.content.SharedPreferences;
+import com.example.myapplication.Session.SessionManager;
 
 public class CreatePostActivity extends AppCompatActivity {
 
@@ -51,21 +52,34 @@ public class CreatePostActivity extends AppCompatActivity {
                 return;
             }
 
-            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
-            int currentUserId = prefs.getInt("user_id", -1);
+            // Lấy userId từ SessionManager
+            SessionManager sessionManager = new SessionManager(this);
+            int currentUserId = sessionManager.getUserId();
             if (currentUserId == -1) {
                 Toast.makeText(this, "Bạn chưa đăng nhập", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            postDAO.insertPost(currentUserId, content, selectedImages,
+            // Chèn bài viết mới vào Firebase
+            PostDAO postDAO = new PostDAO(this); // Truyền context vào đây
+            postDAO.insertPost(
+                    CreatePostActivity.this, // truyền Context
+                    currentUserId,
+                    content,
+                    selectedImages,
                     unused -> {
                         Toast.makeText(CreatePostActivity.this, "Đăng bài thành công!", Toast.LENGTH_SHORT).show();
+                        Intent intent = new Intent(CreatePostActivity.this, MainActivity.class);
+                        intent.putExtra("isNewPost", true);
+                        startActivity(intent);
                         finish();
                     },
                     e -> Toast.makeText(CreatePostActivity.this, "Lỗi khi đăng bài: " + e.getMessage(), Toast.LENGTH_SHORT).show()
             );
+
         });
+
+
     }
 
     private void openImagePicker() {
@@ -117,3 +131,4 @@ public class CreatePostActivity extends AppCompatActivity {
         llPreviewImages.addView(imageView);
     }
 }
+
