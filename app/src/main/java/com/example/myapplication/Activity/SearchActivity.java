@@ -12,6 +12,7 @@ import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -38,7 +39,7 @@ public class SearchActivity extends AppCompatActivity {
     private CafeSuggestionAdapter suggestionAdapter;
 
     private List<String> searchHistory;
-    private List<String> cafeSuggestions;
+    private List<CafeModel> cafeSuggestions;
 
     private CafeSearchDAO searchDAO;
 
@@ -76,7 +77,7 @@ public class SearchActivity extends AppCompatActivity {
             edtSearch.setText(keywordFromFragment);
             edtSearch.setSelection(keywordFromFragment.length());
         }
-        filterSuggestions(keywordFromFragment);
+        filterSuggestions(keywordFromFragment != null ? keywordFromFragment : "");
 
         // Sự kiện nút xoá
         btnClear.setOnClickListener(v -> edtSearch.setText(""));
@@ -93,6 +94,22 @@ public class SearchActivity extends AppCompatActivity {
                 }
             }
             return false;
+        });
+
+        TextView btnClearHistory = findViewById(R.id.btnClearHistory);
+        btnClearHistory.setOnClickListener(v -> {
+            searchDAO.clearSearchHistory(new CafeSearchDAO.SearchHistoryCallback() {
+                @Override
+                public void onResult(List<String> history) {
+                    searchHistory.clear();
+                    historyAdapter.notifyDataSetChanged();
+                }
+
+                @Override
+                public void onError(Exception e) {
+                    Toast.makeText(SearchActivity.this, "Lỗi khi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
         });
 
         // Gợi ý realtime khi gõ
@@ -125,27 +142,25 @@ public class SearchActivity extends AppCompatActivity {
         searchDAO.getAllCafes(0.0, 0.0, new CafeSearchDAO.CafeListCallback() {
             @Override
             public void onResult(List<CafeModel> allCafes) {
-                List<String> result = new ArrayList<>();
+                List<CafeModel> result = new ArrayList<>();
 
                 if (keyword.isEmpty()) {
-                    // Sắp xếp theo khoảng cách và lấy 3 quán gần nhất
                     allCafes.sort(Comparator.comparingDouble(CafeModel::getDistance));
                     for (int i = 0; i < Math.min(3, allCafes.size()); i++) {
-                        result.add(allCafes.get(i).getName());
+                        result.add(allCafes.get(i));
                     }
                 } else {
-                    // Lọc theo keyword và lấy 3 kết quả phù hợp đầu tiên
                     int count = 0;
                     for (CafeModel cafe : allCafes) {
                         if (cafe.getName().toLowerCase().contains(keyword.toLowerCase())) {
-                            result.add(cafe.getName());
+                            result.add(cafe);
                             count++;
                             if (count >= 3) break;
                         }
                     }
                 }
 
-                suggestionAdapter.updateSuggestions(result); // dùng hàm mới
+                suggestionAdapter.updateSuggestions(result);
             }
 
             @Override
@@ -154,7 +169,6 @@ public class SearchActivity extends AppCompatActivity {
             }
         });
     }
-
 
     private void loadSearchHistory() {
         searchDAO.getSearchHistory(new CafeSearchDAO.SearchHistoryCallback() {
@@ -172,6 +186,14 @@ public class SearchActivity extends AppCompatActivity {
         });
     }
 
+    private void returnResult(CafeModel cafe) {
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra("SEARCH_KEYWORD", cafe.getName());
+        setResult(Activity.RESULT_OK, resultIntent);
+        finish();
+    }
+
+    // Overload cũ vẫn dùng cho searchHistoryAdapter
     private void returnResult(String keyword) {
         Intent resultIntent = new Intent();
         resultIntent.putExtra("SEARCH_KEYWORD", keyword);

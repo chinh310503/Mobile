@@ -11,12 +11,13 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.WriteBatch;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-/// fffffffffffffffffffffffffffffffffff
+
 public class CafeSearchDAO {
     private final FirebaseFirestore db;
     private final SessionManager sessionManager;
@@ -58,12 +59,35 @@ public class CafeSearchDAO {
                 .addOnFailureListener(callback::onError);
     }
 
+    public void clearSearchHistory(SearchHistoryCallback callback) {
+        int userId = sessionManager.getUserId();
+        if (userId == -1) {
+            callback.onError(new Exception("Người dùng chưa đăng nhập hoặc không tìm thấy ID"));
+            return;
+        }
+
+        db.collection("search_history")
+                .whereEqualTo("id_user", userId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    WriteBatch batch = db.batch();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        batch.delete(doc.getReference());
+                    }
+
+                    batch.commit()
+                            .addOnSuccessListener(unused -> callback.onResult(new ArrayList<>()))
+                            .addOnFailureListener(callback::onError);
+                })
+                .addOnFailureListener(callback::onError);
+    }
+
+
 
     public void saveSearchHistory(String keyword) {
         int userId = sessionManager.getUserId();
         if (userId == -1) return;
 
-        // Đếm số lượng document hiện có để lấy id mới
         db.collection("search_history")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
@@ -97,7 +121,6 @@ public class CafeSearchDAO {
                 .addOnFailureListener(callback::onError);
     }
 
-    // Parse 1 document từ Firestore thành CafeModel
     private CafeModel parseCafe(DocumentSnapshot doc, double userLat, double userLon) {
         try {
             GeoPoint geo = doc.getGeoPoint("geopoint");
@@ -131,7 +154,7 @@ public class CafeSearchDAO {
         }
     }
 
-    // 👉 Tính khoảng cách giữa 2 điểm (Haversine formula)
+    //Tính khoảng cách giữa 2 điểm (Haversine formula)
     public double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
         final int R = 6371;
         double latDistance = Math.toRadians(lat2 - lat1);
