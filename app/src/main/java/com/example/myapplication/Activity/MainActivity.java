@@ -16,6 +16,7 @@ import com.example.myapplication.fragments.HomeFragment;
 import com.example.myapplication.fragments.ProfileFragment;
 import com.example.myapplication.fragments.SearchFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import android.net.Uri;
 
 public class MainActivity extends AppCompatActivity {
     private SessionManager sessionManager;
