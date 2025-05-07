@@ -1,6 +1,7 @@
 package com.example.myapplication.Adapter;
 
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -11,17 +12,22 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
 import com.example.myapplication.DAO.PostDAO;
 import com.example.myapplication.Model.PostModel;
 import com.example.myapplication.R;
 
+import java.util.ArrayList;
 import java.util.List;
 import com.example.myapplication.Session.SessionManager;
-import android.widget.Toast;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
 
+import android.widget.Toast;
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
 
     private final Context context;
@@ -35,7 +41,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     public static class PostViewHolder extends RecyclerView.ViewHolder {
         TextView tvUserName, tvContent, tvTime, tvLikeCount, tvCommentCount;
         ImageView ivLike, ivAvatar;
-        LinearLayout llImages;
+        ViewPager2 viewPagerImages;
 
         public PostViewHolder(View itemView) {
             super(itemView);
@@ -46,7 +52,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             tvCommentCount = itemView.findViewById(R.id.tvCommentCount);
             ivAvatar = itemView.findViewById(R.id.ivAvatar);
             ivLike = itemView.findViewById(R.id.ivLike);
-            llImages = itemView.findViewById(R.id.llImages);
+            viewPagerImages = itemView.findViewById(R.id.viewPagerImages);
         }
     }
 
@@ -71,43 +77,23 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         if (post.userAvatar != null && !post.userAvatar.isEmpty()) {
             Glide.with(context)
                     .load(post.userAvatar)
-                    .placeholder(R.drawable.ic_user) // icon user mặc định
+                    .placeholder(R.drawable.ic_user)
                     .into(holder.ivAvatar);
         } else {
             holder.ivAvatar.setImageResource(R.drawable.ic_user);
         }
 
-        // Ảnh bài viết
-        holder.llImages.removeAllViews();
+        // Ảnh bài viết bằng ViewPager2
         if (post.imageList != null && !post.imageList.isEmpty()) {
-            holder.llImages.setVisibility(View.VISIBLE);
-            for (String imagePath : post.imageList) {
-                ImageView imageView = new ImageView(context);
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(300, 300);
-                params.setMargins(8, 8, 8, 8);
-                imageView.setLayoutParams(params);
-                imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-
-                // Load ảnh từ URL bằng Glide
-                Glide.with(context)
-                        .load(imagePath)
-                        .placeholder(R.drawable.ic_placeholder) // icon loading
-                        .error(R.drawable.ic_error_image)       // icon lỗi
-                        .into(imageView);
-
-                holder.llImages.addView(imageView);
-            }
+            holder.viewPagerImages.setVisibility(View.VISIBLE);
+            ImagePagerAdapter adapter = new ImagePagerAdapter(context, post.imageList);
+            holder.viewPagerImages.setAdapter(adapter);
         } else {
-            holder.llImages.setVisibility(View.GONE);
+            holder.viewPagerImages.setVisibility(View.GONE);
         }
 
-        if (post.isLiked) {
-            holder.ivLike.setImageResource(R.drawable.ic_heart_filled); // đã like (❤️)
-        } else {
-            holder.ivLike.setImageResource(R.drawable.ic_heart_outline); // chưa like (🤍)
-        }
-
-        // Sự kiện click vào nút like
+        // Like
+        holder.ivLike.setImageResource(post.isLiked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
         holder.ivLike.setOnClickListener(v -> {
             SessionManager sessionManager = new SessionManager(context);
             int userId = sessionManager.getUserId();
@@ -119,15 +105,8 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             PostDAO dao = new PostDAO();
             dao.toggleLike(post.id, userId);
 
-            // Lật trạng thái like và update UI
             post.isLiked = !post.isLiked;
-            if (post.isLiked) {
-                post.likeCount++;
-            } else {
-                if (post.likeCount > 0) {
-                    post.likeCount--;
-                }
-            }
+            post.likeCount += post.isLiked ? 1 : -1;
             notifyItemChanged(holder.getAdapterPosition());
         });
     }
@@ -137,4 +116,8 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         return postList.size();
     }
 }
+
+
+
+
 
