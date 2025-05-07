@@ -196,8 +196,6 @@ public class SearchFragment extends Fragment implements LocationListener {
                 List<CafeModel> filtered = new ArrayList<>();
 
                 for (CafeModel cafe : allCafes) {
-//                    Log.d("min", String.valueOf(cafe.getDistance()));
-//                    Log.d("min abc", String.valueOf(currentDistanceFilter));
                     if (!keyword.isEmpty() && !cafe.getName().toLowerCase().contains(keyword.toLowerCase())) continue;
                     if (wifiSelected && !cafe.isWifiAvailable()) continue;
                     if (workspaceSelected && !cafe.isWorkSpace()) continue;
