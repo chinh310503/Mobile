@@ -2,6 +2,7 @@ package com.example.myapplication.DAO;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.location.Location;
 import android.util.Log;
 
 import com.example.myapplication.Model.CafeModel;
@@ -140,29 +141,22 @@ public class CafeSearchDAO {
             cafe.setDescription(doc.getString("description"));
             cafe.setRating(doc.getLong("rating") != null ? doc.getLong("rating") : 0);
             cafe.setTotalRating(doc.getLong("total_rating") != null ? doc.getLong("total_rating") : 0);
-
             cafe.setOpenHours(doc.getString("open_hours"));
             cafe.setCloseHours(doc.getString("close_hours"));
 
-            double distance = calculateDistance(userLat, userLon, geo.getLatitude(), geo.getLongitude());
-            cafe.setDistance(Math.round(distance * 10.0) / 10.0);
+            Location currentLocation = new Location("");
+            currentLocation.setLatitude(userLat);
+            currentLocation.setLongitude(userLon);
 
+            Location cafeLocation = new Location("");
+            cafeLocation.setLatitude(geo.getLatitude());
+            cafeLocation.setLongitude(geo.getLongitude());
+            double distance = currentLocation.distanceTo(cafeLocation) / 1000;
+            cafe.setDistance(Math.round(distance * 10.0) / 10.0);
             return cafe;
         } catch (Exception e) {
             Log.e("ParseCafe", "Lỗi khi parse quán cafe: " + e.getMessage());
             return null;
         }
-    }
-
-    //Tính khoảng cách giữa 2 điểm (Haversine formula)
-    public double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-        final int R = 6371;
-        double latDistance = Math.toRadians(lat2 - lat1);
-        double lonDistance = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
     }
 }
