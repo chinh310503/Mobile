@@ -48,7 +48,7 @@ public class LoginActivity extends AppCompatActivity {
                 if (user != null) {
                     sessionManager.saveUserSession(user.getId(), user.getEmail(), user.getName(), user.getImg());
                     Log.d("LoginActivity", "Current userId: " + user.getId());
-                    Toast.makeText(LoginActivity.this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(LoginActivity.this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
                     startActivity(new Intent(LoginActivity.this, MainActivity.class));
                     finish();
                 } else {
