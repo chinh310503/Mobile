@@ -67,14 +67,35 @@
         android:clipToPadding="false" />
 
     <!-- Lịch sử tìm kiếm -->
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Lịch sử tìm kiếm"
-        android:textStyle="bold"
-        android:textSize="16sp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:layout_marginTop="16dp"
-        android:layout_marginBottom="4dp" />
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:id="@+id/txtHistoryTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Lịch sử tìm kiếm"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/btnClearHistory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Xóa lịch sử"
+            android:textColor="@color/black"
+        android:textSize="14sp"
+        android:padding="4dp"
+        android:clickable="true"
+        android:focusable="true" />
+    </LinearLayout>
+
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerHistory"

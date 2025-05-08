@@ -1,7 +1,9 @@
 package com.example.myapplication.Adapter;
 
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,20 +12,26 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
+import com.bumptech.glide.Glide;
 import com.example.myapplication.DAO.PostDAO;
 import com.example.myapplication.Model.PostModel;
 import com.example.myapplication.R;
 
+import java.util.ArrayList;
 import java.util.List;
-import android.content.SharedPreferences;
-import android.widget.Toast;
+import com.example.myapplication.Session.SessionManager;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
 
+import android.widget.Toast;
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
 
-    private Context context;
-    private List<PostModel> postList;
+    private final Context context;
+    private final List<PostModel> postList;
 
     public PostAdapter(Context context, List<PostModel> postList) {
         this.context = context;
@@ -33,7 +41,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     public static class PostViewHolder extends RecyclerView.ViewHolder {
         TextView tvUserName, tvContent, tvTime, tvLikeCount, tvCommentCount;
         ImageView ivLike, ivAvatar;
-        LinearLayout llImages;
+        ViewPager2 viewPagerImages;
 
         public PostViewHolder(View itemView) {
             super(itemView);
@@ -44,7 +52,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             tvCommentCount = itemView.findViewById(R.id.tvCommentCount);
             ivAvatar = itemView.findViewById(R.id.ivAvatar);
             ivLike = itemView.findViewById(R.id.ivLike);
-            llImages = itemView.findViewById(R.id.llImages);
+            viewPagerImages = itemView.findViewById(R.id.viewPagerImages);
         }
     }
 
@@ -58,21 +66,37 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     @Override
     public void onBindViewHolder(@NonNull PostViewHolder holder, int position) {
         PostModel post = postList.get(position);
-        holder.tvUserName.setText(post.userName);
-        holder.tvContent.setText(post.content);
-        holder.tvTime.setText(post.timePosted);
+
+        holder.tvUserName.setText(post.userName != null ? post.userName : "User");
+        holder.tvContent.setText(post.content != null ? post.content : "");
+        holder.tvTime.setText(post.timePosted != null ? post.timePosted : "");
         holder.tvLikeCount.setText(String.valueOf(post.likeCount));
         holder.tvCommentCount.setText(String.valueOf(post.commentCount));
 
-        if (post.isLiked) {
-            holder.ivLike.setImageResource(R.drawable.ic_heart_filled); // ❤️
+        // Avatar
+        if (post.userAvatar != null && !post.userAvatar.isEmpty()) {
+            Glide.with(context)
+                    .load(post.userAvatar)
+                    .placeholder(R.drawable.ic_user)
+                    .into(holder.ivAvatar);
         } else {
-            holder.ivLike.setImageResource(R.drawable.ic_heart_outline); // 🤍
+            holder.ivAvatar.setImageResource(R.drawable.ic_user);
         }
-        //Su kien an nut Like
+
+        // Ảnh bài viết bằng ViewPager2
+        if (post.imageList != null && !post.imageList.isEmpty()) {
+            holder.viewPagerImages.setVisibility(View.VISIBLE);
+            ImagePagerAdapter adapter = new ImagePagerAdapter(context, post.imageList);
+            holder.viewPagerImages.setAdapter(adapter);
+        } else {
+            holder.viewPagerImages.setVisibility(View.GONE);
+        }
+
+        // Like
+        holder.ivLike.setImageResource(post.isLiked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
         holder.ivLike.setOnClickListener(v -> {
-            SharedPreferences prefs = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
-            int userId = prefs.getInt("user_id", -1);
+            SessionManager sessionManager = new SessionManager(context);
+            int userId = sessionManager.getUserId();
             if (userId == -1) {
                 Toast.makeText(context, "Bạn chưa đăng nhập", Toast.LENGTH_SHORT).show();
                 return;
@@ -80,41 +104,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
             PostDAO dao = new PostDAO();
             dao.toggleLike(post.id, userId);
-            post.isLiked = !post.isLiked;
-            // Update trạng thái local
-            if (post.isLiked) {
-                post.likeCount++;
-            } else {
-                if (post.likeCount > 0) {
-                    post.likeCount--;
-                }
-            }
 
+            post.isLiked = !post.isLiked;
+            post.likeCount += post.isLiked ? 1 : -1;
             notifyItemChanged(holder.getAdapterPosition());
         });
-        if (post.avatarUri != null && !post.avatarUri.isEmpty()) {
-            holder.ivAvatar.setImageURI(Uri.parse(post.avatarUri));
-        } else {
-            holder.ivAvatar.setImageResource(R.drawable.ic_user); // avatar mặc định
-        }
-
-        // Xóa ảnh cũ (nếu có)
-        holder.llImages.removeAllViews();
-        if (post.imageList != null && !post.imageList.isEmpty()) {
-            holder.llImages.setVisibility(View.VISIBLE); // Hiện ảnh nếu có
-
-            for (String imagePath : post.imageList) {
-                ImageView imageView = new ImageView(context);
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(300, 300);
-                params.setMargins(8, 8, 8, 8);
-                imageView.setLayoutParams(params);
-                imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                imageView.setImageURI(Uri.parse(imagePath));
-                holder.llImages.addView(imageView);
-            }
-        } else {
-            holder.llImages.setVisibility(View.GONE); // Ẩn nếu không có ảnh
-        }
     }
 
     @Override
@@ -122,3 +116,8 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         return postList.size();
     }
 }
+
+
+
+
+
