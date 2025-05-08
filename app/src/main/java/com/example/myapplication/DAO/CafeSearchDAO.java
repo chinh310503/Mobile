@@ -105,13 +105,13 @@ public class CafeSearchDAO {
                 .addOnFailureListener(e -> Log.e("SearchDAO", "Failed to count existing histories", e));
     }
 
-    public void getAllCafes(double userLat, double userLon, CafeListCallback callback) {
+    public void getAllCafes(CafeListCallback callback) {
         db.collection("cafes")
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     List<CafeModel> cafeList = new ArrayList<>();
                     for (QueryDocumentSnapshot doc : querySnapshot) {
-                        CafeModel cafe = parseCafe(doc, userLat, userLon);
+                        CafeModel cafe = parseCafe(doc, sessionManager.getUserLatitude(), sessionManager.getUserLongitude());
                         if (cafe != null) {
                             cafeList.add(cafe);
                         }
