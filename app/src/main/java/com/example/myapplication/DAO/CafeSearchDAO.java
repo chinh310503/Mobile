@@ -1,7 +1,6 @@
 package com.example.myapplication.DAO;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.util.Log;
 
 import com.example.myapplication.Model.CafeModel;
@@ -21,6 +20,7 @@ import java.util.Map;
 public class CafeSearchDAO {
     private final FirebaseFirestore db;
     private final SessionManager sessionManager;
+
     public CafeSearchDAO(Context context) {
         db = FirebaseFirestore.getInstance();
         sessionManager = new SessionManager(context);
@@ -59,6 +59,27 @@ public class CafeSearchDAO {
                 .addOnFailureListener(callback::onError);
     }
 
+    public void saveSearchHistory(String keyword) {
+        int userId = sessionManager.getUserId();
+        if (userId == -1) return;
+
+        db.collection("search_history")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    int newId = queryDocumentSnapshots.size() + 1;
+
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("id", newId);
+                    data.put("id_user", userId);
+                    data.put("search_query", keyword);
+
+                    db.collection("search_history").add(data)
+                            .addOnSuccessListener(documentReference -> Log.d("SearchDAO", "Saved search history with ID: " + newId))
+                            .addOnFailureListener(e -> Log.e("SearchDAO", "Failed to save search history", e));
+                })
+                .addOnFailureListener(e -> Log.e("SearchDAO", "Failed to count existing histories", e));
+    }
+
     public void clearSearchHistory(SearchHistoryCallback callback) {
         int userId = sessionManager.getUserId();
         if (userId == -1) {
@@ -82,29 +103,7 @@ public class CafeSearchDAO {
                 .addOnFailureListener(callback::onError);
     }
 
-
-
-    public void saveSearchHistory(String keyword) {
-        int userId = sessionManager.getUserId();
-        if (userId == -1) return;
-
-        db.collection("search_history")
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    int newId = queryDocumentSnapshots.size() + 1;
-
-                    Map<String, Object> data = new HashMap<>();
-                    data.put("id", newId);
-                    data.put("id_user", userId);
-                    data.put("search_query", keyword);
-
-                    db.collection("search_history").add(data)
-                            .addOnSuccessListener(documentReference -> Log.d("SearchDAO", "Saved search history with ID: " + newId))
-                            .addOnFailureListener(e -> Log.e("SearchDAO", "Failed to save search history", e));
-                })
-                .addOnFailureListener(e -> Log.e("SearchDAO", "Failed to count existing histories", e));
-    }
-
+    // ✅ Hàm 1: Cho SearchFragment – truyền lat, lon vào
     public void getAllCafes(double userLat, double userLon, CafeListCallback callback) {
         db.collection("cafes")
                 .get()
@@ -121,13 +120,20 @@ public class CafeSearchDAO {
                 .addOnFailureListener(callback::onError);
     }
 
+    // ✅ Hàm 2: Cho SearchActivity – tự động lấy vị trí từ session
+    public void getAllCafes(CafeListCallback callback) {
+        double lat = sessionManager.getUserLatitude();
+        double lon = sessionManager.getUserLongitude();
+        getAllCafes(lat, lon, callback); // gọi lại hàm trên
+    }
+
     private CafeModel parseCafe(DocumentSnapshot doc, double userLat, double userLon) {
         try {
             GeoPoint geo = doc.getGeoPoint("geopoint");
             if (geo == null) return null;
 
             CafeModel cafe = new CafeModel();
-            cafe.setId(doc.getLong("id").intValue());
+            cafe.setId(doc.getLong("id") != null ? doc.getLong("id") : 0);
             cafe.setName(doc.getString("name"));
             cafe.setLat(geo.getLatitude());
             cafe.setLon(geo.getLongitude());
@@ -135,12 +141,18 @@ public class CafeSearchDAO {
             cafe.setWifiAvailable(Boolean.TRUE.equals(doc.getBoolean("wifi_available")));
             cafe.setWorkSpace(Boolean.TRUE.equals(doc.getBoolean("work_space")));
             cafe.setPhone(doc.getString("phone"));
-            cafe.setMinPrice(doc.getDouble("min_price"));
+
+            Object minPriceRaw = doc.get("min_price");
+            if (minPriceRaw instanceof Number) {
+                cafe.setMinPrice(((Number) minPriceRaw).doubleValue());
+            } else {
+                cafe.setMinPrice(0);
+            }
+
             cafe.setImg(doc.getString("img"));
             cafe.setDescription(doc.getString("description"));
             cafe.setRating(doc.getLong("rating") != null ? doc.getLong("rating") : 0);
             cafe.setTotalRating(doc.getLong("total_rating") != null ? doc.getLong("total_rating") : 0);
-
             cafe.setOpenHours(doc.getString("open_hours"));
             cafe.setCloseHours(doc.getString("close_hours"));
 
@@ -154,7 +166,6 @@ public class CafeSearchDAO {
         }
     }
 
-    //Tính khoảng cách giữa 2 điểm (Haversine formula)
     public double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
         final int R = 6371;
         double latDistance = Math.toRadians(lat2 - lat1);

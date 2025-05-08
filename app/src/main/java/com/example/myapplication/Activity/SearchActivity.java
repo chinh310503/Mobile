@@ -139,7 +139,7 @@ public class SearchActivity extends AppCompatActivity {
     }
 
     private void filterSuggestions(String keyword) {
-        searchDAO.getAllCafes(0.0, 0.0, new CafeSearchDAO.CafeListCallback() {
+        searchDAO.getAllCafes(new CafeSearchDAO.CafeListCallback() {
             @Override
             public void onResult(List<CafeModel> allCafes) {
                 List<CafeModel> result = new ArrayList<>();
@@ -193,7 +193,6 @@ public class SearchActivity extends AppCompatActivity {
         finish();
     }
 
-    // Overload cũ vẫn dùng cho searchHistoryAdapter
     private void returnResult(String keyword) {
         Intent resultIntent = new Intent();
         resultIntent.putExtra("SEARCH_KEYWORD", keyword);

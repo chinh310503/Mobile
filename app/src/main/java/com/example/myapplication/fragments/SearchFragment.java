@@ -2,24 +2,22 @@ package com.example.myapplication.fragments;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-import android.content.Intent;
-import android.app.Activity;
-import com.example.myapplication.Activity.SearchActivity;
 
-
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
@@ -28,6 +26,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.myapplication.Activity.SearchActivity;
 import com.example.myapplication.Adapter.CafeAdapter;
 import com.example.myapplication.DAO.CafeSearchDAO;
 import com.example.myapplication.DAO.FavoriteCafeDAO;
@@ -35,6 +34,7 @@ import com.example.myapplication.Dialogs.DistanceFilterBottomSheet;
 import com.example.myapplication.Dialogs.PriceFilterBottomSheet;
 import com.example.myapplication.Model.CafeModel;
 import com.example.myapplication.R;
+import com.example.myapplication.Session.SessionManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -61,9 +61,9 @@ public class SearchFragment extends Fragment implements LocationListener {
     private double currentDistanceFilter;
     private double currentPriceFilter;
     private Set<Long> favoriteCafeIds;
+    private int userId;
 
-    private static final int REQUEST_SEARCH = 1001;
-
+    private ActivityResultLauncher<Intent> searchLauncher;
 
     @SuppressLint("MissingPermission")
     @Nullable
@@ -77,11 +77,46 @@ public class SearchFragment extends Fragment implements LocationListener {
         cafeList = new ArrayList<>();
         favoriteCafeIds = new HashSet<>();
 
+        // Lấy userId từ SessionManager
+        SessionManager sessionManager = new SessionManager(requireContext());
+        userId = sessionManager.getUserId();
 
         View view = inflater.inflate(R.layout.search_fragment, container, false);
 
         recyclerView = view.findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+
+        cafeSearchDAO = new CafeSearchDAO(requireContext());
+        cafeFavoriteDAO = new FavoriteCafeDAO(requireContext());
+        cafeAdapter = new CafeAdapter(cafeList, requireContext());
+        recyclerView.setAdapter(cafeAdapter);
+
+        cafeAdapter.setOnCafeClickListener(cafe -> {
+            long cafeId = cafe.getId();
+            FeedFragment feedFragment = new FeedFragment();
+            Bundle bundle = new Bundle();
+            bundle.putLong("CAFE_ID", cafeId);
+            bundle.putInt("USER_ID", userId);
+            feedFragment.setArguments(bundle);
+
+            requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.flFragment, feedFragment)
+                    .addToBackStack(null)
+                    .commit();
+        });
+
+        searchLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        String keyword = result.getData().getStringExtra("SEARCH_KEYWORD");
+                        if (searchEditText != null && keyword != null) {
+                            searchEditText.setText(keyword);
+                            loadFilteredCafes();
+                        }
+                    }
+                });
 
         TextInputLayout searchLayout = view.findViewById(R.id.searchText);
         searchEditText = searchLayout.getEditText();
@@ -92,34 +127,15 @@ public class SearchFragment extends Fragment implements LocationListener {
                 Intent intent = new Intent(requireContext(), SearchActivity.class);
                 String currentKeyword = searchEditText.getText().toString().trim();
                 intent.putExtra("CURRENT_KEYWORD", currentKeyword);
-                startActivityForResult(intent, REQUEST_SEARCH);
+                searchLauncher.launch(intent);
             });
         }
-
 
         MaterialButton btnWifi = view.findViewById(R.id.btn_wifi);
         MaterialButton btnWorkspace = view.findViewById(R.id.btn_workspace);
         MaterialButton btnOpenNow = view.findViewById(R.id.btn_open_now);
         MaterialButton btnSortDistance = view.findViewById(R.id.btn_sort_distance);
         MaterialButton btnSortPrice = view.findViewById(R.id.btn_sort_price);
-
-        cafeSearchDAO = new CafeSearchDAO(requireContext());
-        cafeFavoriteDAO = new FavoriteCafeDAO(requireContext());
-        cafeAdapter = new CafeAdapter(cafeList, requireContext());
-        recyclerView.setAdapter(cafeAdapter);
-
-        locationManager = (LocationManager) requireContext().getSystemService(Context.LOCATION_SERVICE);
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(requireActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-        } else {
-            Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            if (lastLocation != null) {
-                userLatitude = lastLocation.getLatitude();
-                userLongitude = lastLocation.getLongitude();
-                loadFilteredCafes();
-            }
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
-        }
 
         btnWifi.setOnClickListener(v -> {
             wifiSelected = !wifiSelected;
@@ -163,7 +179,6 @@ public class SearchFragment extends Fragment implements LocationListener {
 
         cafeAdapter.setOnFavoriteClickListener((cafe, isFavoriteNow) -> {
             long cafeId = cafe.getId();
-
             if (isFavoriteNow) {
                 cafeFavoriteDAO.addFavorite(cafeId);
             } else {
@@ -174,7 +189,7 @@ public class SearchFragment extends Fragment implements LocationListener {
         cafeFavoriteDAO.getFavoritesByUserId(new FavoriteCafeDAO.FavoriteListCallback() {
             @Override
             public void onSuccess(Set<Long> favoriteIds) {
-                cafeAdapter.setFavoriteCafes(favoriteIds); // Truyền danh sách này vào Adapter
+                cafeAdapter.setFavoriteCafes(favoriteIds);
                 cafeAdapter.notifyDataSetChanged();
             }
 
@@ -183,6 +198,19 @@ public class SearchFragment extends Fragment implements LocationListener {
                 Log.e("Favorite", "Lỗi khi lấy danh sách yêu thích", e);
             }
         });
+
+        locationManager = (LocationManager) requireContext().getSystemService(Context.LOCATION_SERVICE);
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(requireActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        } else {
+            Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            if (lastLocation != null) {
+                userLatitude = lastLocation.getLatitude();
+                userLongitude = lastLocation.getLongitude();
+                loadFilteredCafes();
+            }
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
+        }
 
         return view;
     }
@@ -194,7 +222,6 @@ public class SearchFragment extends Fragment implements LocationListener {
             @Override
             public void onResult(List<CafeModel> allCafes) {
                 List<CafeModel> filtered = new ArrayList<>();
-
                 for (CafeModel cafe : allCafes) {
                     if (!keyword.isEmpty() && !cafe.getName().toLowerCase().contains(keyword.toLowerCase())) continue;
                     if (wifiSelected && !cafe.isWifiAvailable()) continue;
@@ -253,19 +280,6 @@ public class SearchFragment extends Fragment implements LocationListener {
         userLongitude = location.getLongitude();
         loadFilteredCafes();
     }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_SEARCH && resultCode == Activity.RESULT_OK && data != null) {
-            String keyword = data.getStringExtra("SEARCH_KEYWORD");
-            if (searchEditText != null && keyword != null) {
-                searchEditText.setText(keyword);
-                loadFilteredCafes();
-            }
-        }
-    }
-
 
     @Override public void onStatusChanged(String provider, int status, Bundle extras) {}
     @Override public void onProviderEnabled(@NonNull String provider) {}

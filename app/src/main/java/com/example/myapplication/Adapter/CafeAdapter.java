@@ -13,9 +13,8 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.example.myapplication.DAO.FavoriteCafeDAO;
-import com.example.myapplication.R;
 import com.example.myapplication.Model.CafeModel;
+import com.example.myapplication.R;
 
 import java.util.HashSet;
 import java.util.List;
@@ -35,10 +34,19 @@ public class CafeAdapter extends RecyclerView.Adapter<CafeAdapter.CafeViewHolder
         void onFavoriteClick(CafeModel cafe, boolean isFavoriteNow);
     }
 
+    public interface OnCafeClickListener {
+        void onCafeClick(CafeModel cafe);
+    }
+
     private OnFavoriteClickListener favoriteClickListener;
+    private OnCafeClickListener cafeClickListener;
 
     public void setOnFavoriteClickListener(OnFavoriteClickListener listener) {
         this.favoriteClickListener = listener;
+    }
+
+    public void setOnCafeClickListener(OnCafeClickListener listener) {
+        this.cafeClickListener = listener;
     }
 
     @NonNull
@@ -57,8 +65,8 @@ public class CafeAdapter extends RecyclerView.Adapter<CafeAdapter.CafeViewHolder
         Log.d("CafeImage", "URL = " + cafe.getImg());
         Glide.with(context)
                 .load(cafe.getImg())
-                .placeholder(R.drawable.default_img_coffee) // ảnh mặc định khi loading
-                .error(R.drawable.default_img_coffee) // ảnh khi load lỗi
+                .placeholder(R.drawable.default_img_coffee)
+                .error(R.drawable.default_img_coffee)
                 .into(holder.imgCafe);
 
         if (cafe.isOpen()) {
@@ -82,7 +90,13 @@ public class CafeAdapter extends RecyclerView.Adapter<CafeAdapter.CafeViewHolder
                 holder.btnFavorite.setImageResource(R.drawable.red_heart);
             }
             if (favoriteClickListener != null) {
-                favoriteClickListener.onFavoriteClick(cafe, !isFavorite);
+                favoriteClickListener.onFavoriteClick(cafe, !currentFavorite);
+            }
+        });
+
+        holder.itemView.setOnClickListener(v -> {
+            if (cafeClickListener != null) {
+                cafeClickListener.onCafeClick(cafe);
             }
         });
     }
@@ -95,6 +109,7 @@ public class CafeAdapter extends RecyclerView.Adapter<CafeAdapter.CafeViewHolder
     public void setFavoriteCafes(Set<Long> favoriteIds) {
         this.favoriteCafeIds = favoriteIds;
     }
+
     public static class CafeViewHolder extends RecyclerView.ViewHolder {
         TextView txtCafeName, txtCafeAddress, txtCafeDistance, txtCafeStatus;
         ImageView btnFavorite, imgCafe;

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <!-- Nút Đóng -->
+    <ImageButton
+        android:id="@+id/btnClose"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_close"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Đóng"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_margin="16dp" />
+
+    <!-- Tiêu đề -->
+    <TextView
+        android:id="@+id/txtReviewTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Trải nghiệm của bạn về"
+        android:textSize="18sp"
+        android:textColor="@color/brown"
+        app:layout_constraintTop_toBottomOf="@id/btnClose"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp" />
+
+    <!-- Tên quán -->
+    <TextView
+        android:id="@+id/txtCafeName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Tên quán"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:textColor="@color/brown"
+        app:layout_constraintTop_toBottomOf="@id/txtReviewTitle"
+        app:layout_constraintStart_toStartOf="@id/txtReviewTitle"
+        android:layout_marginTop="4dp" />
+
+    <!-- RatingBar -->
+    <RatingBar
+        android:id="@+id/ratingBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:numStars="5"
+        android:stepSize="1"
+        android:isIndicator="false"
+        android:layout_marginTop="8dp"
+        style="?android:attr/ratingBarStyleSmall"
+        app:layout_constraintTop_toBottomOf="@id/txtCafeName"
+        app:layout_constraintStart_toStartOf="@id/txtCafeName" />
+
+    <!-- Ô nhập trải nghiệm -->
+    <EditText
+        android:id="@+id/edtExperience"
+        android:layout_width="0dp"
+        android:layout_height="120dp"
+        android:hint="Trải nghiệm của bạn"
+        android:background="@drawable/bg_edittext"
+        android:gravity="top|start"
+        android:padding="12dp"
+        android:textColor="@color/black"
+        app:layout_constraintTop_toBottomOf="@id/ratingBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_margin="16dp" />
+
+    <!-- Label Hình ảnh -->
+    <TextView
+        android:id="@+id/txtImageLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Hình ảnh"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        app:layout_constraintTop_toBottomOf="@id/edtExperience"
+        app:layout_constraintStart_toStartOf="@id/edtExperience"
+        android:layout_marginTop="16dp" />
+
+    <!-- RecyclerView hình ảnh -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerImages"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:orientation="horizontal"
+        android:overScrollMode="never"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintTop_toBottomOf="@id/txtImageLabel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_margin="16dp" />
+
+    <!-- Button Gửi -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSubmitReview"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Để lại trải nghiệm của bạn"
+        android:backgroundTint="@color/brown"
+        android:textColor="@color/white"
+        app:cornerRadius="24dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_margin="16dp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
