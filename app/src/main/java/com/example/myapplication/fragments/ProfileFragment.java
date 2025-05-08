@@ -44,7 +44,9 @@ public class ProfileFragment extends Fragment {
         sessionManager = new SessionManager(requireContext());
         userNameTextView.setText(sessionManager.getUserName());
         Glide.with(requireContext())
-                .load(R.drawable.avatar)
+                .load(sessionManager.getUserImg())
+                .placeholder(R.drawable.avatar) // ảnh khi đang loading
+                .error(R.drawable.avatar) // ảnh khi lỗi
                 .circleCrop()
                 .into(avatarImageView);
 
