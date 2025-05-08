@@ -55,16 +55,35 @@
             android:orientation="horizontal"
             android:padding="8dp">
 
-            <!-- Icon bộ lọc -->
-            <ImageView
+            <!-- Filter icon với badge -->
+            <FrameLayout
+                android:id="@+id/layoutFilterBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:background="@color/white"
-                android:padding="8dp"
-                android:src="@drawable/filter" />
+                android:layout_marginEnd="8dp">
 
-            <!-- Nút lọc -->
+                <ImageView
+                    android:id="@+id/ivFilter"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:padding="8dp"
+                    android:src="@drawable/filter"
+                    android:background="@android:color/white" />
+
+                <TextView
+                    android:id="@+id/txtFilterCount"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|top"
+                    android:background="@drawable/bg_badge_red"
+                    android:text="2"
+                    android:textColor="@android:color/white"
+                    android:textSize="10sp"
+                    android:gravity="center"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+            <!-- Các nút lọc -->
             <com.google.android.material.button.MaterialButton
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:id="@+id/btn_sort_distance"
@@ -118,6 +137,7 @@
         </LinearLayout>
     </HorizontalScrollView>
 
+    <!-- Danh sách quán -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
@@ -127,6 +147,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>
