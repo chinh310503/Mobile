@@ -9,6 +9,8 @@ public class SessionManager {
     private static final String KEY_ID = "user_id";
     private static final String KEY_NAME = "user_name";
     private static final String KEY_IMG = "user_img";
+    private static final String KEY_LAT = "user_lat";
+    private static final String KEY_LON = "user_lon";
 
     private final SharedPreferences sharedPreferences;
     private final SharedPreferences.Editor editor;
@@ -24,6 +26,20 @@ public class SessionManager {
         editor.putString(KEY_NAME, name);
         editor.putString(KEY_IMG, img);
         editor.apply();
+    }
+
+    public void saveUserLocation(double lat, double lon) {
+        editor.putLong(KEY_LAT, Double.doubleToRawLongBits(lat));
+        editor.putLong(KEY_LON, Double.doubleToRawLongBits(lon));
+        editor.apply();
+    }
+
+    public double getUserLatitude() {
+        return Double.longBitsToDouble(sharedPreferences.getLong(KEY_LAT, Double.doubleToRawLongBits(0.0)));
+    }
+
+    public double getUserLongitude() {
+        return Double.longBitsToDouble(sharedPreferences.getLong(KEY_LON, Double.doubleToRawLongBits(0.0)));
     }
 
     public String getUserEmail() {

@@ -35,6 +35,7 @@ import com.example.myapplication.Dialogs.DistanceFilterBottomSheet;
 import com.example.myapplication.Dialogs.PriceFilterBottomSheet;
 import com.example.myapplication.Model.CafeModel;
 import com.example.myapplication.R;
+import com.example.myapplication.Session.SessionManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -60,10 +61,9 @@ public class SearchFragment extends Fragment implements LocationListener {
     private boolean openNowSelected;
     private double currentDistanceFilter;
     private double currentPriceFilter;
-    private Set<Long> favoriteCafeIds;
 
     private static final int REQUEST_SEARCH = 1001;
-
+    SessionManager sessionManager;
 
     @SuppressLint("MissingPermission")
     @Nullable
@@ -75,8 +75,7 @@ public class SearchFragment extends Fragment implements LocationListener {
         openNowSelected = false;
         wifiSelected = false;
         cafeList = new ArrayList<>();
-        favoriteCafeIds = new HashSet<>();
-
+        sessionManager = new SessionManager(requireContext());
 
         View view = inflater.inflate(R.layout.search_fragment, container, false);
 
@@ -190,7 +189,7 @@ public class SearchFragment extends Fragment implements LocationListener {
     private void loadFilteredCafes() {
         String keyword = searchEditText != null ? searchEditText.getText().toString().trim() : "";
 
-        cafeSearchDAO.getAllCafes(userLatitude, userLongitude, new CafeSearchDAO.CafeListCallback() {
+        cafeSearchDAO.getAllCafes(new CafeSearchDAO.CafeListCallback() {
             @Override
             public void onResult(List<CafeModel> allCafes) {
                 List<CafeModel> filtered = new ArrayList<>();
@@ -251,6 +250,7 @@ public class SearchFragment extends Fragment implements LocationListener {
     public void onLocationChanged(@NonNull Location location) {
         userLatitude = location.getLatitude();
         userLongitude = location.getLongitude();
+        sessionManager.saveUserLocation(userLatitude, userLongitude);
         loadFilteredCafes();
     }
 
