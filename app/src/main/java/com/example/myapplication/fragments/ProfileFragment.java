@@ -50,6 +50,7 @@ public class ProfileFragment extends Fragment {
                 .circleCrop()
                 .into(avatarImageView);
 
+
         ProfilePagerAdapter pagerAdapter = new ProfilePagerAdapter(getChildFragmentManager(), getLifecycle());
         viewPager.setAdapter(pagerAdapter);
 
