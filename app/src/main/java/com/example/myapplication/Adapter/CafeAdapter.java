@@ -56,7 +56,7 @@ public class CafeAdapter extends RecyclerView.Adapter<CafeAdapter.CafeViewHolder
         holder.txtCafeDistance.setText("Cách bạn: " + cafe.getDistance() + " km");
         Log.d("CafeImage", "URL = " + cafe.getImg());
         Glide.with(context)
-                .load(cafe.getImg()) // giả sử trường img trong CafeModel là URL
+                .load(cafe.getImg())
                 .placeholder(R.drawable.default_img_coffee) // ảnh mặc định khi loading
                 .error(R.drawable.default_img_coffee) // ảnh khi load lỗi
                 .into(holder.imgCafe);

@@ -11,5 +11,8 @@
     <color name="teal_700">#018786</color>
     <color name="gray_300">#E0E0E0</color>
     <color name="brown">#6B3E26</color>
+    <color name="red">#FF2A18</color>
+    <color name="filter_selected_bg">#FEE7D3</color>
+    <color name="filter_selected_text">#B45B35</color>
 
 </resources>

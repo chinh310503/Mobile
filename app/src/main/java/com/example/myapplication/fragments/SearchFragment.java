@@ -17,6 +17,8 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.content.Intent;
 import android.app.Activity;
+import android.widget.TextView;
+
 import com.example.myapplication.Activity.SearchActivity;
 
 
@@ -35,6 +37,7 @@ import com.example.myapplication.Dialogs.DistanceFilterBottomSheet;
 import com.example.myapplication.Dialogs.PriceFilterBottomSheet;
 import com.example.myapplication.Model.CafeModel;
 import com.example.myapplication.R;
+import com.example.myapplication.Session.SessionManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -60,10 +63,9 @@ public class SearchFragment extends Fragment implements LocationListener {
     private boolean openNowSelected;
     private double currentDistanceFilter;
     private double currentPriceFilter;
-    private Set<Long> favoriteCafeIds;
-
+    private TextView txtFilterCount;
     private static final int REQUEST_SEARCH = 1001;
-
+    SessionManager sessionManager;
 
     @SuppressLint("MissingPermission")
     @Nullable
@@ -75,13 +77,15 @@ public class SearchFragment extends Fragment implements LocationListener {
         openNowSelected = false;
         wifiSelected = false;
         cafeList = new ArrayList<>();
-        favoriteCafeIds = new HashSet<>();
-
+        sessionManager = new SessionManager(requireContext());
 
         View view = inflater.inflate(R.layout.search_fragment, container, false);
 
         recyclerView = view.findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+
+        txtFilterCount = view.findViewById(R.id.txtFilterCount);
+        updateFilterCount();
 
         TextInputLayout searchLayout = view.findViewById(R.id.searchText);
         searchEditText = searchLayout.getEditText();
@@ -95,7 +99,6 @@ public class SearchFragment extends Fragment implements LocationListener {
                 startActivityForResult(intent, REQUEST_SEARCH);
             });
         }
-
 
         MaterialButton btnWifi = view.findViewById(R.id.btn_wifi);
         MaterialButton btnWorkspace = view.findViewById(R.id.btn_workspace);
@@ -124,18 +127,21 @@ public class SearchFragment extends Fragment implements LocationListener {
         btnWifi.setOnClickListener(v -> {
             wifiSelected = !wifiSelected;
             updateButtonState(btnWifi, wifiSelected);
+            updateFilterCount();
             loadFilteredCafes();
         });
 
         btnWorkspace.setOnClickListener(v -> {
             workspaceSelected = !workspaceSelected;
             updateButtonState(btnWorkspace, workspaceSelected);
+            updateFilterCount();
             loadFilteredCafes();
         });
 
         btnOpenNow.setOnClickListener(v -> {
             openNowSelected = !openNowSelected;
             updateButtonState(btnOpenNow, openNowSelected);
+            updateFilterCount();
             loadFilteredCafes();
         });
 
@@ -145,6 +151,7 @@ public class SearchFragment extends Fragment implements LocationListener {
             sheet.setOnDistanceSelectedListener(distance -> {
                 currentDistanceFilter = distance;
                 updateDistanceButton(btnSortDistance);
+                updateFilterCount();
                 loadFilteredCafes();
             });
             sheet.show(getChildFragmentManager(), sheet.getTag());
@@ -156,6 +163,7 @@ public class SearchFragment extends Fragment implements LocationListener {
             sheet.setOnPriceSelectedListener(price -> {
                 currentPriceFilter = price;
                 updatePriceButton(btnSortPrice);
+                updateFilterCount();
                 loadFilteredCafes();
             });
             sheet.show(getChildFragmentManager(), sheet.getTag());
@@ -190,14 +198,12 @@ public class SearchFragment extends Fragment implements LocationListener {
     private void loadFilteredCafes() {
         String keyword = searchEditText != null ? searchEditText.getText().toString().trim() : "";
 
-        cafeSearchDAO.getAllCafes(userLatitude, userLongitude, new CafeSearchDAO.CafeListCallback() {
+        cafeSearchDAO.getAllCafes(new CafeSearchDAO.CafeListCallback() {
             @Override
             public void onResult(List<CafeModel> allCafes) {
                 List<CafeModel> filtered = new ArrayList<>();
 
                 for (CafeModel cafe : allCafes) {
-//                    Log.d("min", String.valueOf(cafe.getDistance()));
-//                    Log.d("min abc", String.valueOf(currentDistanceFilter));
                     if (!keyword.isEmpty() && !cafe.getName().toLowerCase().contains(keyword.toLowerCase())) continue;
                     if (wifiSelected && !cafe.isWifiAvailable()) continue;
                     if (workspaceSelected && !cafe.isWorkSpace()) continue;
@@ -223,8 +229,8 @@ public class SearchFragment extends Fragment implements LocationListener {
     private void updatePriceButton(MaterialButton btnSortPrice) {
         if (currentPriceFilter > 0) {
             btnSortPrice.setText("0K - " + (int) currentPriceFilter + "K");
-            btnSortPrice.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.teal_700));
-            btnSortPrice.setTextColor(ContextCompat.getColor(requireContext(), R.color.white));
+            btnSortPrice.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.filter_selected_bg));
+            btnSortPrice.setTextColor(ContextCompat.getColor(requireContext(), R.color.filter_selected_text));
         } else {
             btnSortPrice.setText("Giá tiền");
             btnSortPrice.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.white));
@@ -235,8 +241,8 @@ public class SearchFragment extends Fragment implements LocationListener {
     private void updateDistanceButton(MaterialButton btnSortDistance) {
         if (currentDistanceFilter > 0) {
             btnSortDistance.setText("0km - " + (int) currentDistanceFilter + " km");
-            btnSortDistance.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.teal_700));
-            btnSortDistance.setTextColor(ContextCompat.getColor(requireContext(), R.color.white));
+            btnSortDistance.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.filter_selected_bg));
+            btnSortDistance.setTextColor(ContextCompat.getColor(requireContext(), R.color.filter_selected_text));
         } else {
             btnSortDistance.setText("Khoảng cách");
             btnSortDistance.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.white));
@@ -245,15 +251,34 @@ public class SearchFragment extends Fragment implements LocationListener {
     }
 
     private void updateButtonState(MaterialButton button, boolean selected) {
-        button.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), selected ? R.color.teal_700 : R.color.white));
-        button.setTextColor(ContextCompat.getColor(requireContext(), selected ? R.color.white : R.color.black));
+        button.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), selected ? R.color.filter_selected_bg : R.color.white));
+        button.setTextColor(ContextCompat.getColor(requireContext(), selected ? R.color.filter_selected_text : R.color.black));
     }
 
     @Override
     public void onLocationChanged(@NonNull Location location) {
         userLatitude = location.getLatitude();
         userLongitude = location.getLongitude();
+        sessionManager.saveUserLocation(userLatitude, userLongitude);
         loadFilteredCafes();
+    }
+
+    private void updateFilterCount() {
+        int count = 0;
+        if (wifiSelected) count++;
+        if (workspaceSelected) count++;
+        if (openNowSelected) count++;
+        if (currentDistanceFilter > 0) count++;
+        if (currentPriceFilter > 0) count++;
+
+        if (txtFilterCount != null) {
+            if (count > 0) {
+                txtFilterCount.setText(String.valueOf(count));
+                txtFilterCount.setVisibility(View.VISIBLE);
+            } else {
+                txtFilterCount.setVisibility(View.GONE);
+            }
+        }
     }
 
     @Override
