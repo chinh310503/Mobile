@@ -5,6 +5,7 @@ import java.util.List;
 
 public class PostModel {
     public int id;
+    public int userId; // Thêm dòng này
     public String content;
     public String userName;
     public String userAvatar;
@@ -34,7 +35,7 @@ public class PostModel {
         this.comments = new ArrayList<>();
         this.imageList = new ArrayList<>();
         this.isLiked = isLiked;
-        this.timestamp = timestamp;  // Lưu thời gian tạo bài viết
+        this.timestamp = timestamp;
     }
 
     public int getId() {
@@ -43,6 +44,14 @@ public class PostModel {
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public int getUserId() {
+        return userId;
+    }
+
+    public void setUserId(int userId) {
+        this.userId = userId;
     }
 
     public String getContent() {
@@ -132,10 +141,11 @@ public class PostModel {
     public void setLiked(boolean liked) {
         isLiked = liked;
     }
-    // Getter và Setter cho timestamp
+
     public long getTimestamp() {
         return timestamp;
     }
+
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }

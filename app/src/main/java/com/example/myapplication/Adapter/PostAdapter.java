@@ -9,23 +9,33 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
+import com.example.myapplication.Activity.CommentActivity;
+import com.example.myapplication.Activity.EditPostActivity;
 import com.example.myapplication.DAO.PostDAO;
 import com.example.myapplication.Model.PostModel;
 import com.example.myapplication.R;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
+
 import com.example.myapplication.Session.SessionManager;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import android.widget.Toast;
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
@@ -40,7 +50,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
     public static class PostViewHolder extends RecyclerView.ViewHolder {
         TextView tvUserName, tvContent, tvTime, tvLikeCount, tvCommentCount;
-        ImageView ivLike, ivAvatar;
+        ImageView ivLike, ivAvatar, ivMenu;
         ViewPager2 viewPagerImages;
 
         public PostViewHolder(View itemView) {
@@ -52,6 +62,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             tvCommentCount = itemView.findViewById(R.id.tvCommentCount);
             ivAvatar = itemView.findViewById(R.id.ivAvatar);
             ivLike = itemView.findViewById(R.id.ivLike);
+            ivMenu = itemView.findViewById(R.id.ivMenu);
             viewPagerImages = itemView.findViewById(R.id.viewPagerImages);
         }
     }
@@ -63,27 +74,34 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         return new PostViewHolder(view);
     }
 
-    @Override
     public void onBindViewHolder(@NonNull PostViewHolder holder, int position) {
         PostModel post = postList.get(position);
 
         holder.tvUserName.setText(post.userName != null ? post.userName : "User");
         holder.tvContent.setText(post.content != null ? post.content : "");
-        holder.tvTime.setText(post.timePosted != null ? post.timePosted : "");
+
+        if (post.timestamp > 0) {
+            Date date = new Date(post.timestamp);
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault());
+            sdf.setTimeZone(TimeZone.getDefault());
+            holder.tvTime.setText(sdf.format(date));
+        } else {
+            holder.tvTime.setText("Không xác định");
+        }
+
         holder.tvLikeCount.setText(String.valueOf(post.likeCount));
         holder.tvCommentCount.setText(String.valueOf(post.commentCount));
 
-        // Avatar
         if (post.userAvatar != null && !post.userAvatar.isEmpty()) {
             Glide.with(context)
                     .load(post.userAvatar)
                     .placeholder(R.drawable.ic_user)
+                    .circleCrop()
                     .into(holder.ivAvatar);
         } else {
             holder.ivAvatar.setImageResource(R.drawable.ic_user);
         }
 
-        // Ảnh bài viết bằng ViewPager2
         if (post.imageList != null && !post.imageList.isEmpty()) {
             holder.viewPagerImages.setVisibility(View.VISIBLE);
             ImagePagerAdapter adapter = new ImagePagerAdapter(context, post.imageList);
@@ -92,7 +110,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             holder.viewPagerImages.setVisibility(View.GONE);
         }
 
-        // Like
         holder.ivLike.setImageResource(post.isLiked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
         holder.ivLike.setOnClickListener(v -> {
             SessionManager sessionManager = new SessionManager(context);
@@ -109,6 +126,51 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             post.likeCount += post.isLiked ? 1 : -1;
             notifyItemChanged(holder.getAdapterPosition());
         });
+
+        holder.itemView.findViewById(R.id.ivComment).setOnClickListener(v -> {
+            Intent intent = new Intent(context, CommentActivity.class);
+            intent.putExtra("postId", post.id);
+            context.startActivity(intent);
+        });
+
+        // Menu 3 chấm
+        SessionManager sessionManager = new SessionManager(context);
+        if (post.userId == sessionManager.getUserId()) {
+            holder.ivMenu.setVisibility(View.VISIBLE);
+            holder.ivMenu.setOnClickListener(v -> {
+                PopupMenu popup = new PopupMenu(context, holder.ivMenu);
+                popup.inflate(R.menu.menu_post_options);
+                popup.setOnMenuItemClickListener(item -> {
+                    if (item.getItemId() == R.id.action_edit) {
+                        Intent intent = new Intent(context, EditPostActivity.class);
+                        intent.putExtra("postId", post.id);
+                        context.startActivity(intent);
+                        return true;
+                    } else if (item.getItemId() == R.id.action_delete) {
+                        new AlertDialog.Builder(context)
+                                .setTitle("Xác nhận xóa")
+                                .setMessage("Bạn có chắc chắn muốn xóa bài viết này không?")
+                                .setPositiveButton("Xóa", (dialog, which) -> {
+                                    PostDAO dao = new PostDAO();
+                                    dao.deletePostById(post.id,
+                                            () -> {
+                                                Toast.makeText(context, "Đã xóa bài viết", Toast.LENGTH_SHORT).show();
+                                                // reload adapter hoặc quay lại trang chủ nếu cần
+                                            },
+                                            e -> Toast.makeText(context, "Lỗi khi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                                    );
+                                })
+                                .setNegativeButton("Hủy", null)
+                                .show();
+                        return true;
+                    }
+                    return false;
+                });
+                popup.show();
+            });
+        } else {
+            holder.ivMenu.setVisibility(View.GONE);
+        }
     }
 
     @Override

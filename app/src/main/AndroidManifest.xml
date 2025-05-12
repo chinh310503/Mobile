@@ -25,6 +25,8 @@
         <activity android:name=".Activity.MainActivity" />
         <activity android:name=".Activity.CreatePostActivity" />
         <activity android:name=".Activity.SearchActivity" />
+        <activity android:name=".Activity.CommentActivity" />
+        <activity android:name=".Activity.EditPostActivity" />
     </application>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />

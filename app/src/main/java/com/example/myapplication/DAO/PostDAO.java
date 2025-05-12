@@ -2,47 +2,26 @@ package com.example.myapplication.DAO;
 
 import android.content.Context;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-
-import com.cloudinary.Cloudinary;
 import com.cloudinary.android.callback.ErrorInfo;
-import com.cloudinary.utils.ObjectUtils;
 import com.cloudinary.android.MediaManager;
 import com.cloudinary.android.callback.UploadCallback;
-import com.cloudinary.android.callback.UploadResult;
-import android.content.ContentResolver;
-import com.example.myapplication.Cloudinary.CloudinaryHelper;
 import com.example.myapplication.Model.PostModel;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.TaskCompletionSource;
 import com.google.android.gms.tasks.Tasks;
-import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
 import android.database.Cursor;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -73,9 +52,10 @@ public class PostDAO {
                     for (QueryDocumentSnapshot doc : postsSnapshot) {
                         PostModel post = new PostModel();
                         post.setId(doc.getLong("id").intValue());
+                        post.setUserId(doc.getLong("id_user").intValue());
                         post.setContent(doc.getString("content"));
                         post.setImageList(new ArrayList<>());
-
+                        post.setTimestamp(doc.getLong("timestamp"));
                         int postId = post.getId();
                         int userIdFromPost = doc.getLong("id_user").intValue();
 
@@ -161,9 +141,8 @@ public class PostDAO {
     }
     // Lấy số bình luận của bài viết
     private void getCommentCount(int postId, final OnSuccessListener<Integer> listener) {
-        db.collection("interact")
-                .whereEqualTo("id_post", postId)
-                .whereNotEqualTo("comment", null)
+        db.collection("comment")
+                .whereEqualTo("postId", postId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> listener.onSuccess(queryDocumentSnapshots.size()));
     }
@@ -263,10 +242,6 @@ public class PostDAO {
         }
     }
 
-
-
-
-
     private String getRealPathFromURI(Context context, Uri uri) {
         String path = null;
         String[] projection = {MediaStore.Images.Media.DATA};
@@ -280,10 +255,6 @@ public class PostDAO {
         }
         return path;
     }
-
-
-
-
 
     // Toggle like/unlike cho bài viết
     public void toggleLike(int postId, int userId) {
@@ -308,6 +279,50 @@ public class PostDAO {
                     }
                 });
     }
-
+    public void deletePostById(int postId, Runnable onSuccess, OnFailureListener onFailure) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        // Xóa bài viết
+        db.collection("post")
+                .whereEqualTo("id", postId)
+                .get()
+                .addOnSuccessListener(postSnap -> {
+                    for (DocumentSnapshot doc : postSnap) {
+                        doc.getReference().delete();
+                    }
+                    // Xóa comment
+                    db.collection("comment")
+                            .whereEqualTo("postId", postId)
+                            .get()
+                            .addOnSuccessListener(commentSnap -> {
+                                for (DocumentSnapshot doc : commentSnap) {
+                                    doc.getReference().delete();
+                                }
+                                // Xóa interact
+                                db.collection("interact")
+                                        .whereEqualTo("id_post", postId)
+                                        .get()
+                                        .addOnSuccessListener(interactSnap -> {
+                                            for (DocumentSnapshot doc : interactSnap) {
+                                                doc.getReference().delete();
+                                            }
+                                            // Xóa ảnh bài viết
+                                            db.collection("post_image")
+                                                    .whereEqualTo("id_post", postId)
+                                                    .get()
+                                                    .addOnSuccessListener(imageSnap -> {
+                                                        for (DocumentSnapshot doc : imageSnap) {
+                                                            doc.getReference().delete();
+                                                        }
+                                                        // Toàn bộ đã xóa thành công
+                                                        onSuccess.run();
+                                                    })
+                                                    .addOnFailureListener(onFailure);
+                                        })
+                                        .addOnFailureListener(onFailure);
+                            })
+                            .addOnFailureListener(onFailure);
+                })
+                .addOnFailureListener(onFailure);
+    }
 }
 

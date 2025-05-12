@@ -18,12 +18,24 @@ import java.util.List;
 
 public class ImagePagerAdapter extends RecyclerView.Adapter<ImagePagerAdapter.PagerViewHolder> {
 
+    public interface OnImageRemoveListener {
+        void onRemove(String uri);
+    }
+
     private final Context context;
     private final List<String> imageUrls;
+    private final OnImageRemoveListener removeListener;
 
     public ImagePagerAdapter(Context context, List<String> imageUrls) {
         this.context = context;
         this.imageUrls = imageUrls;
+        this.removeListener = null;
+    }
+
+    public ImagePagerAdapter(Context context, List<String> imageUrls, OnImageRemoveListener listener) {
+        this.context = context;
+        this.imageUrls = imageUrls;
+        this.removeListener = listener;
     }
 
     @NonNull
@@ -35,11 +47,19 @@ public class ImagePagerAdapter extends RecyclerView.Adapter<ImagePagerAdapter.Pa
 
     @Override
     public void onBindViewHolder(@NonNull PagerViewHolder holder, int position) {
+        String imageUrl = imageUrls.get(position);
         Glide.with(context)
-                .load(imageUrls.get(position))
+                .load(imageUrl)
                 .placeholder(R.drawable.ic_placeholder)
                 .error(R.drawable.ic_error_image)
                 .into(holder.imageView);
+
+        if (removeListener != null) {
+            holder.btnRemove.setVisibility(View.VISIBLE);
+            holder.btnRemove.setOnClickListener(v -> removeListener.onRemove(imageUrl));
+        } else {
+            holder.btnRemove.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -49,12 +69,16 @@ public class ImagePagerAdapter extends RecyclerView.Adapter<ImagePagerAdapter.Pa
 
     static class PagerViewHolder extends RecyclerView.ViewHolder {
         ImageView imageView;
+        ImageView btnRemove;
 
         PagerViewHolder(@NonNull View itemView) {
             super(itemView);
             imageView = itemView.findViewById(R.id.imagePager);
+            btnRemove = itemView.findViewById(R.id.btnRemove);
         }
     }
 }
+
+
 
 

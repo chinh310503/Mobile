@@ -1,0 +1,8 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_edit"
+        android:title="Sửa bài viết" />
+    <item
+        android:id="@+id/action_delete"
+        android:title="Xóa bài viết" />
+</menu>
