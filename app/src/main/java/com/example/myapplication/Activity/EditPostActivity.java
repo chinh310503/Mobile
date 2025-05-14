@@ -1,12 +1,17 @@
 package com.example.myapplication.Activity;
 
+import android.content.ClipData;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
@@ -14,7 +19,11 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.example.myapplication.Adapter.ImagePagerAdapter;
 import com.example.myapplication.DAO.PostDAO;
 import com.example.myapplication.R;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.tbuonomo.viewpagerdotsindicator.DotsIndicator;
+import com.tbuonomo.viewpagerdotsindicator.WormDotsIndicator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,15 +31,32 @@ import java.util.List;
 public class EditPostActivity extends AppCompatActivity {
 
     private EditText edtContent;
-    private ViewPager2 viewPagerImages;
-    private Button btnSave, btnChooseImages;
+    private ViewPager2 viewPager;
+    private WormDotsIndicator dotsIndicator;
+    private Button btnSave, btnAddImages;
     private int postId;
-    private List<String> imageList = new ArrayList<>();
+    private List<String> currentImages = new ArrayList<>();
     private List<Uri> newImageUris = new ArrayList<>();
-    private FirebaseFirestore db;
-    private PostDAO postDAO;
     private ImagePagerAdapter imagePagerAdapter;
-    private static final int REQUEST_CODE_PICK_IMAGES = 1001;
+    private PostDAO postDAO;
+    private FirebaseFirestore db;
+
+    private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    if (result.getData().getClipData() != null) {
+                        ClipData clipData = result.getData().getClipData();
+                        for (int i = 0; i < clipData.getItemCount(); i++) {
+                            Uri uri = clipData.getItemAt(i).getUri();
+                            newImageUris.add(uri);
+                        }
+                    } else if (result.getData().getData() != null) {
+                        newImageUris.add(result.getData().getData());
+                    }
+                    updateImagePreview();
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,119 +64,120 @@ public class EditPostActivity extends AppCompatActivity {
         setContentView(R.layout.activity_edit_post);
 
         edtContent = findViewById(R.id.edtContent);
-        viewPagerImages = findViewById(R.id.viewPagerImages);
+        viewPager = findViewById(R.id.viewPager);
+        dotsIndicator = (WormDotsIndicator) findViewById(R.id.dotsIndicator);
         btnSave = findViewById(R.id.btnSave);
-        btnChooseImages = findViewById(R.id.btnChooseImages);
+        btnAddImages = findViewById(R.id.btnAddImages);
 
         db = FirebaseFirestore.getInstance();
         postDAO = new PostDAO(this);
+
         postId = getIntent().getIntExtra("postId", -1);
 
-        imagePagerAdapter = new ImagePagerAdapter(this, imageList, uri -> {
-            imageList.remove(uri);
-            imagePagerAdapter.notifyDataSetChanged();
-        });
-        viewPagerImages.setAdapter(imagePagerAdapter);
+        imagePagerAdapter = new ImagePagerAdapter(this, currentImages, null);
+        viewPager.setAdapter(imagePagerAdapter);
+        dotsIndicator.setViewPager2(viewPager);
 
-        loadPostData();
-
+        btnAddImages.setOnClickListener(v -> pickImages());
         btnSave.setOnClickListener(v -> saveChanges());
-        btnChooseImages.setOnClickListener(v -> pickImagesFromGallery());
+
+        loadPost();
     }
 
-    private void loadPostData() {
+    private void pickImages() {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        intent.setType("image/*");
+        imagePickerLauncher.launch(intent);
+    }
+
+    private void loadPost() {
         db.collection("post")
                 .whereEqualTo("id", postId)
                 .limit(1)
                 .get()
                 .addOnSuccessListener(snapshot -> {
                     if (!snapshot.isEmpty()) {
-                        var doc = snapshot.getDocuments().get(0);
-                        String content = doc.getString("content");
-                        edtContent.setText(content);
-
-                        db.collection("post_image")
-                                .whereEqualTo("id_post", postId)
-                                .get()
-                                .addOnSuccessListener(imgSnap -> {
-                                    imageList.clear();
-                                    for (var imgDoc : imgSnap) {
-                                        String img = imgDoc.getString("img");
-                                        imageList.add(img);
-                                    }
-                                    imagePagerAdapter.notifyDataSetChanged();
-                                });
+                        DocumentSnapshot doc = snapshot.getDocuments().get(0);
+                        edtContent.setText(doc.getString("content"));
                     }
+                });
+
+        db.collection("post_image")
+                .whereEqualTo("id_post", postId)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    currentImages.clear();
+                    for (DocumentSnapshot doc : snapshot) {
+                        currentImages.add(doc.getString("img"));
+                    }
+                    updateImagePreview();
                 });
     }
 
-    private void pickImagesFromGallery() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("image/*");
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        startActivityForResult(Intent.createChooser(intent, "Chọn ảnh"), REQUEST_CODE_PICK_IMAGES);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE_PICK_IMAGES && resultCode == RESULT_OK && data != null) {
-            if (data.getClipData() != null) {
-                for (int i = 0; i < data.getClipData().getItemCount(); i++) {
-                    Uri uri = data.getClipData().getItemAt(i).getUri();
-                    newImageUris.add(uri);
-                    imageList.add(uri.toString());
+    private void updateImagePreview() {
+        List<String> allImages = new ArrayList<>(currentImages);
+        for (Uri uri : newImageUris) {
+            allImages.add(uri.toString());
+        }
+        imagePagerAdapter = new ImagePagerAdapter(this, allImages, new ImagePagerAdapter.OnImageRemoveListener() {
+            @Override
+            public void onRemove(String imageUrl) {
+                int position = allImages.indexOf(imageUrl);
+                if (position < currentImages.size()) {
+                    currentImages.remove(position);
+                } else {
+                    int uriIndex = position - currentImages.size();
+                    if (uriIndex >= 0 && uriIndex < newImageUris.size()) {
+                        newImageUris.remove(uriIndex);
+                    }
                 }
-            } else if (data.getData() != null) {
-                Uri uri = data.getData();
-                newImageUris.add(uri);
-                imageList.add(uri.toString());
+                updateImagePreview();
             }
-            imagePagerAdapter.notifyDataSetChanged();
-            Toast.makeText(this, "Đã chọn " + newImageUris.size() + " ảnh mới", Toast.LENGTH_SHORT).show();
+        });
+        viewPager.setAdapter(imagePagerAdapter);
+        if (allImages.size() > 1) {
+            dotsIndicator.setVisibility(View.VISIBLE);
+            dotsIndicator.setViewPager2(viewPager);
+        } else {
+            dotsIndicator.setVisibility(View.GONE);
         }
     }
 
     private void saveChanges() {
-        String updatedContent = edtContent.getText().toString().trim();
-        if (updatedContent.isEmpty()) {
+        String newContent = edtContent.getText().toString().trim();
+        if (newContent.isEmpty()) {
             Toast.makeText(this, "Nội dung không được để trống", Toast.LENGTH_SHORT).show();
             return;
         }
 
         db.collection("post")
                 .whereEqualTo("id", postId)
+                .limit(1)
                 .get()
                 .addOnSuccessListener(snapshot -> {
-                    for (var doc : snapshot) {
-                        doc.getReference().update("content", updatedContent);
+                    if (!snapshot.isEmpty()) {
+                        DocumentReference docRef = snapshot.getDocuments().get(0).getReference();
+                        docRef.update("content", newContent);
                     }
+                });
 
-                    db.collection("post_image")
-                            .whereEqualTo("id_post", postId)
-                            .get()
-                            .addOnSuccessListener(oldSnap -> {
-                                for (var doc : oldSnap) {
-                                    String oldUrl = doc.getString("img");
-                                    if (!imageList.contains(oldUrl)) {
-                                        doc.getReference().delete();
-                                    }
-                                }
-
-                                if (!newImageUris.isEmpty()) {
-                                    postDAO.uploadImages(this, postId, newImageUris,
-                                            unused -> {
-                                                Toast.makeText(this, "Đã cập nhật bài viết", Toast.LENGTH_SHORT).show();
-                                                finish();
-                                            },
-                                            e -> Toast.makeText(this, "Lỗi khi upload ảnh", Toast.LENGTH_SHORT).show());
-                                } else {
-                                    Toast.makeText(this, "Đã cập nhật nội dung", Toast.LENGTH_SHORT).show();
-                                    finish();
-                                }
-                            });
+        db.collection("post_image")
+                .whereEqualTo("id_post", postId)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    for (DocumentSnapshot doc : snapshot) {
+                        if (!currentImages.contains(doc.getString("img"))) {
+                            doc.getReference().delete();
+                        }
+                    }
+                    if (!newImageUris.isEmpty()) {
+                        postDAO.uploadImages(this, postId, newImageUris,
+                                unused -> finish(),
+                                e -> Toast.makeText(this, "Lỗi khi tải ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                    } else {
+                        finish();
+                    }
                 });
     }
 }
-
-

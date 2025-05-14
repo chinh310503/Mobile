@@ -29,6 +29,7 @@ import com.example.myapplication.R;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class SearchActivity extends AppCompatActivity {
 
@@ -139,17 +140,26 @@ public class SearchActivity extends AppCompatActivity {
     }
 
     private void filterSuggestions(String keyword) {
-        searchDAO.getAllCafes(new CafeSearchDAO.CafeListCallback() {
-            @Override
-            public void onResult(List<CafeModel> allCafes) {
-                List<CafeModel> result = new ArrayList<>();
+        if (keyword.isEmpty()) {
+            searchDAO.getRecommendedSimilarCafes(new CafeSearchDAO.RecommendationCallback() {
+                @Override
+                public void onResult(List<CafeModel> cafes) {
+                    Log.d("DEBUG", "Gợi ý tương đồng: " + cafes.size());
+                    for (CafeModel c : cafes) Log.d("DEBUG", "→ " + c.getName());
+                    List<CafeModel> result = cafes.stream().limit(3).collect(Collectors.toList());
+                    suggestionAdapter.updateSuggestions(result);
+                }
 
-                if (keyword.isEmpty()) {
-                    allCafes.sort(Comparator.comparingDouble(CafeModel::getDistance));
-                    for (int i = 0; i < Math.min(3, allCafes.size()); i++) {
-                        result.add(allCafes.get(i));
-                    }
-                } else {
+                @Override
+                public void onError(Exception e) {
+                    Toast.makeText(SearchActivity.this, "Lỗi gợi ý: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else {
+            searchDAO.getAllCafes(new CafeSearchDAO.CafeListCallback() {
+                @Override
+                public void onResult(List<CafeModel> allCafes) {
+                    List<CafeModel> result = new ArrayList<>();
                     int count = 0;
                     for (CafeModel cafe : allCafes) {
                         if (cafe.getName().toLowerCase().contains(keyword.toLowerCase())) {
@@ -158,17 +168,17 @@ public class SearchActivity extends AppCompatActivity {
                             if (count >= 3) break;
                         }
                     }
+                    suggestionAdapter.updateSuggestions(result);
                 }
 
-                suggestionAdapter.updateSuggestions(result);
-            }
-
-            @Override
-            public void onError(Exception e) {
-                Toast.makeText(SearchActivity.this, "Lỗi tải gợi ý: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
+                @Override
+                public void onError(Exception e) {
+                    Toast.makeText(SearchActivity.this, "Lỗi tải gợi ý: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
     }
+
 
     private void loadSearchHistory() {
         searchDAO.getSearchHistory(new CafeSearchDAO.SearchHistoryCallback() {

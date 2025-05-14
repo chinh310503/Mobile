@@ -20,9 +20,9 @@
     <Button
         android:id="@+id/btnSelectImages"
         android:text="Chọn ảnh"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp" />
+        android:layout_marginTop="16dp" />
 
     <HorizontalScrollView
         android:layout_width="match_parent"

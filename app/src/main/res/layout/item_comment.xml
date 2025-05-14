@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
+<RelativeLayout android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:padding="8dp">
+    android:padding="8dp"
+    xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Avatar hình tròn -->
     <ImageView
@@ -11,16 +10,31 @@
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:scaleType="centerCrop"
-        android:layout_marginEnd="8dp"
         android:src="@drawable/ic_user"
-        android:background="@drawable/circle_mask" />
+        android:layout_alignParentStart="true"
+        android:background="@drawable/circle_mask"
+        android:layout_marginEnd="8dp" />
 
-    <!-- Khối nội dung bình luận -->
+    <!-- Nút menu 3 chấm -->
+    <ImageView
+        android:id="@+id/ivMenu"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="2dp"
+        android:src="@drawable/ic_more_vert"
+        android:contentDescription="Menu"
+        android:visibility="gone" />
+
+    <!-- Nội dung bình luận -->
     <LinearLayout
         android:orientation="vertical"
         android:background="@drawable/bg_comment_bubble"
         android:padding="12dp"
-        android:layout_width="wrap_content"
+        android:layout_toEndOf="@id/ivAvatar"
+        android:layout_toStartOf="@id/ivMenu"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:elevation="2dp">
 
@@ -28,7 +42,6 @@
             android:id="@+id/tvUserName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Tên người dùng"
             android:textStyle="bold"
             android:textColor="#000"
             android:textSize="14sp" />
@@ -37,7 +50,6 @@
             android:id="@+id/tvContent"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Nội dung bình luận"
             android:textColor="#333"
             android:textSize="14sp"
             android:layout_marginTop="2dp" />
@@ -46,9 +58,9 @@
             android:id="@+id/tvTime"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="48 tuần"
             android:textColor="#999"
             android:textSize="12sp"
             android:layout_marginTop="4dp" />
     </LinearLayout>
-</LinearLayout>
+</RelativeLayout>
+

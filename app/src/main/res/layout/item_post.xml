@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="12dp"
     android:background="@drawable/rounded_white_bg"
@@ -73,6 +75,19 @@
         android:layout_height="300dp"
         android:layout_marginTop="8dp"
         android:visibility="gone" />
+    <com.tbuonomo.viewpagerdotsindicator.DotsIndicator
+        android:id="@+id/dotsIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="4dp"
+        app:dotsSize="4dp"
+        app:dotsSpacing="6dp"
+        app:dotsCornerRadius="2dp"
+        app:dotsColor="@color/gray"
+        app:selectedDotColor="@android:color/holo_blue_light"
+        android:visibility="gone"
+        tools:ignore="MissingClass" />
 
     <!-- Like & Comment count -->
     <LinearLayout

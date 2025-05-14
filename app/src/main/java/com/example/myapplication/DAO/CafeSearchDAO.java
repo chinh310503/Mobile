@@ -7,6 +7,7 @@ import android.util.Log;
 
 import com.example.myapplication.Model.CafeModel;
 import com.example.myapplication.Session.SessionManager;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.GeoPoint;
@@ -15,9 +16,13 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class CafeSearchDAO {
     private final FirebaseFirestore db;
@@ -159,4 +164,111 @@ public class CafeSearchDAO {
             return null;
         }
     }
+    public interface RecommendationCallback {
+        void onResult(List<CafeModel> cafes);
+        void onError(Exception e);
+    }
+
+    public void getRecommendedSimilarCafes(RecommendationCallback callback) {
+        int userId = sessionManager.getUserId();
+        if (userId == -1) {
+            callback.onError(new Exception("Người dùng chưa đăng nhập"));
+            return;
+        }
+
+        db.collection("favorite_cafe")
+                .whereEqualTo("id_user", userId)
+                .get()
+                .addOnSuccessListener(favoriteDocs -> {
+                    List<Long> favoriteIds = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : favoriteDocs) {
+                        Long cafeId = doc.getLong("id_cafe");
+                        if (cafeId != null) favoriteIds.add(cafeId);
+                    }
+
+                    db.collection("search_history")
+                            .whereEqualTo("id_user", userId)
+                            .orderBy("id", Query.Direction.DESCENDING)
+                            .limit(10)
+                            .get()
+                            .addOnSuccessListener(historyDocs -> {
+                                Set<String> searchKeywords = new HashSet<>();
+                                for (QueryDocumentSnapshot doc : historyDocs) {
+                                    String keyword = doc.getString("search_query");
+                                    if (keyword != null) searchKeywords.add(keyword.toLowerCase());
+                                }
+
+                                db.collection("cafes").get()
+                                        .addOnSuccessListener(allDocs -> {
+                                            List<CafeModel> favoriteCafes = new ArrayList<>();
+                                            List<CafeModel> allCafes = new ArrayList<>();
+
+                                            for (DocumentSnapshot cafeDoc : allDocs) {
+                                                CafeModel cafe = parseCafe(cafeDoc,
+                                                        sessionManager.getUserLatitude(),
+                                                        sessionManager.getUserLongitude());
+                                                if (cafe != null) {
+                                                    allCafes.add(cafe);
+                                                    if (favoriteIds.contains((long) cafe.getId())) {
+                                                        favoriteCafes.add(cafe);
+                                                    }
+                                                }
+                                            }
+
+                                            Map<CafeModel, Double> similarityMap = new HashMap<>();
+
+                                            for (CafeModel cafe : allCafes) {
+                                                if (favoriteIds.contains((long) cafe.getId())) continue;
+
+                                                double maxSim = 0;
+                                                for (CafeModel fav : favoriteCafes) {
+                                                    double sim = calculateSimilarity(cafe, fav);
+                                                    maxSim = Math.max(maxSim, sim);
+                                                }
+
+                                                // Suggest base on history
+                                                boolean matchesKeyword = searchKeywords.stream().anyMatch(k ->
+                                                        cafe.getName().toLowerCase().contains(k) ||
+                                                                (cafe.getDescription() != null && cafe.getDescription().toLowerCase().contains(k))
+                                                );
+
+                                                if (maxSim > 0.4 || matchesKeyword) {
+                                                    similarityMap.put(cafe, maxSim + (matchesKeyword ? 0.1 : 0));
+                                                }
+                                            }
+
+                                            List<CafeModel> result = similarityMap.entrySet().stream()
+                                                    .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+                                                    .map(Map.Entry::getKey)
+                                                    .collect(Collectors.toList());
+
+                                            callback.onResult(result);
+                                        })
+                                        .addOnFailureListener(callback::onError);
+                            })
+                            .addOnFailureListener(callback::onError);
+                })
+                .addOnFailureListener(callback::onError);
+    }
+
+    private double calculateSimilarity(CafeModel a, CafeModel b) {
+        double score = 0;
+        if (a.isWifiAvailable() == b.isWifiAvailable()) score += 0.2;
+        if (a.isWorkSpace() == b.isWorkSpace()) score += 0.2;
+        double priceDiff = Math.abs(a.getMinPrice() - b.getMinPrice());
+        if (priceDiff < 20000) score += 0.2;
+        double ratingDiff = Math.abs(a.getRating() - b.getRating());
+        if (ratingDiff <= 1.0) score += 0.2;
+        if (a.getDescription() != null && b.getDescription() != null &&
+                hasCommonWords(a.getDescription(), b.getDescription())) score += 0.2;
+        return score;
+    }
+
+    private boolean hasCommonWords(String a, String b) {
+        Set<String> wordsA = new HashSet<>(Arrays.asList(a.toLowerCase().split("\\s+")));
+        Set<String> wordsB = new HashSet<>(Arrays.asList(b.toLowerCase().split("\\s+")));
+        wordsA.retainAll(wordsB);
+        return !wordsA.isEmpty();
+    }
+
 }

@@ -1,4 +1,4 @@
-<!-- res/layout/fragment_home.xml -->
+<!-- res/layout/home_fragment.xml -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
