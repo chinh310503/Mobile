@@ -35,10 +35,19 @@ public class CafeAdapter extends RecyclerView.Adapter<CafeAdapter.CafeViewHolder
         void onFavoriteClick(CafeModel cafe, boolean isFavoriteNow);
     }
 
+    public interface OnCafeClickListener {
+        void onCafeClick(CafeModel cafe);
+    }
+
     private OnFavoriteClickListener favoriteClickListener;
+    private OnCafeClickListener cafeClickListener;
 
     public void setOnFavoriteClickListener(OnFavoriteClickListener listener) {
         this.favoriteClickListener = listener;
+    }
+
+    public void setOnCafeClickListener(OnCafeClickListener listener) {
+        this.cafeClickListener = listener;
     }
 
     @NonNull
@@ -85,6 +94,12 @@ public class CafeAdapter extends RecyclerView.Adapter<CafeAdapter.CafeViewHolder
                 favoriteClickListener.onFavoriteClick(cafe, !isFavorite);
             }
         });
+
+        holder.itemView.setOnClickListener(v -> {
+            if (cafeClickListener != null) {
+                cafeClickListener.onCafeClick(cafe);
+            }
+        });
     }
 
     @Override
@@ -95,6 +110,7 @@ public class CafeAdapter extends RecyclerView.Adapter<CafeAdapter.CafeViewHolder
     public void setFavoriteCafes(Set<Long> favoriteIds) {
         this.favoriteCafeIds = favoriteIds;
     }
+
     public static class CafeViewHolder extends RecyclerView.ViewHolder {
         TextView txtCafeName, txtCafeAddress, txtCafeDistance, txtCafeStatus;
         ImageView btnFavorite, imgCafe;

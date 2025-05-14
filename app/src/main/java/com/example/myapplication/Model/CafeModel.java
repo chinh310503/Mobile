@@ -1,8 +1,9 @@
 package com.example.myapplication.Model;
 
+import java.io.Serializable;
 import java.util.Calendar;
 
-public class CafeModel {
+public class CafeModel implements Serializable {
     private long id;
     private String name;
     private double lat;

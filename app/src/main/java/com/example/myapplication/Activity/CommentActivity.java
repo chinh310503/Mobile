@@ -32,6 +32,7 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.tbuonomo.viewpagerdotsindicator.DotsIndicator;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -54,7 +55,7 @@ public class CommentActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private int postId;
     private SessionManager sessionManager;
-
+    private DotsIndicator dotsIndicator;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,7 +74,7 @@ public class CommentActivity extends AppCompatActivity {
         rvComments = findViewById(R.id.rvComments);
         edtComment = findViewById(R.id.edtComment);
         btnSend = findViewById(R.id.btnSend);
-
+        dotsIndicator = findViewById(R.id.dotsIndicator);
         db = FirebaseFirestore.getInstance();
         sessionManager = new SessionManager(this);
         postId = getIntent().getIntExtra("postId", -1);
@@ -164,7 +165,16 @@ public class CommentActivity extends AppCompatActivity {
                                     }
                                     if (!imageList.isEmpty()) {
                                         viewPagerImages.setVisibility(View.VISIBLE);
-                                        viewPagerImages.setAdapter(new ImagePagerAdapter(this, imageList));
+                                        //viewPagerImages.setAdapter(new ImagePagerAdapter(this, imageList));
+                                        ImagePagerAdapter adapter = new ImagePagerAdapter(this, imageList);
+                                        viewPagerImages.setAdapter(adapter);
+
+                                        if (imageList.size() > 1) {
+                                            dotsIndicator.setVisibility(View.VISIBLE);
+                                            dotsIndicator.setViewPager2(viewPagerImages);
+                                        } else {
+                                            dotsIndicator.setVisibility(View.GONE);
+                                        }
                                     }
                                 });
 

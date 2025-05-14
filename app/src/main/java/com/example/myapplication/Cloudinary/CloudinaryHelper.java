@@ -1,26 +1,11 @@
 package com.example.myapplication.Cloudinary;
-//import com.cloudinary.Cloudinary;
-//import com.cloudinary.utils.ObjectUtils;
-//
-//public class CloudinaryHelper {
-//    private Cloudinary mCloudinary;
-//
-//    public CloudinaryHelper() {
-//        // Cấu hình Cloudinary với API key, secret và cloud name
-//        mCloudinary = new Cloudinary(ObjectUtils.asMap(
-//                "cloud_name", "drqkphhmi",
-//                "api_key", "839415397899152",
-//                "api_secret", "YsV0AC8MmjlE43hkLUVvWySwLmo"));
-//    }
-//
-//    public Cloudinary getCloudinaryInstance() {
-//        return mCloudinary;
-//    }
-//}
 
 import android.content.Context;
+import android.net.Uri;
 
 import com.cloudinary.android.MediaManager;
+import com.cloudinary.android.callback.ErrorInfo;
+import com.cloudinary.android.callback.UploadCallback;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,5 +24,39 @@ public class CloudinaryHelper {
             MediaManager.init(context, config);
             isInitialized = true;
         }
+    }
+
+    // ✅ Interface callback dùng trong ReviewDAO
+    public interface UploadImageCallback {
+        void onComplete(String url);
+    }
+
+    // ✅ Hàm upload ảnh
+    public static void uploadImage(Uri uri, Context context, UploadImageCallback callback) {
+        init(context); // đảm bảo đã khởi tạo MediaManager
+
+        MediaManager.get().upload(uri)
+                .callback(new UploadCallback() {
+                    @Override public void onStart(String requestId) {}
+
+                    @Override public void onProgress(String requestId, long bytes, long totalBytes) {}
+
+                    @Override
+                    public void onSuccess(String requestId, Map resultData) {
+                        String url = (String) resultData.get("secure_url");
+                        callback.onComplete(url);
+                    }
+
+                    @Override
+                    public void onError(String requestId, ErrorInfo error) {
+                        callback.onComplete(null);
+                    }
+
+                    @Override
+                    public void onReschedule(String requestId, ErrorInfo error) {
+                        callback.onComplete(null);
+                    }
+                })
+                .dispatch();
     }
 }

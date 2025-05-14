@@ -36,6 +36,7 @@ import com.example.myapplication.Session.SessionManager;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.tbuonomo.viewpagerdotsindicator.DotsIndicator;
 
 import android.widget.Toast;
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
@@ -52,6 +53,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         TextView tvUserName, tvContent, tvTime, tvLikeCount, tvCommentCount;
         ImageView ivLike, ivAvatar, ivMenu;
         ViewPager2 viewPagerImages;
+        DotsIndicator dotsIndicator;
 
         public PostViewHolder(View itemView) {
             super(itemView);
@@ -64,6 +66,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             ivLike = itemView.findViewById(R.id.ivLike);
             ivMenu = itemView.findViewById(R.id.ivMenu);
             viewPagerImages = itemView.findViewById(R.id.viewPagerImages);
+            dotsIndicator = itemView.findViewById(R.id.dotsIndicator);
         }
     }
 
@@ -74,6 +77,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         return new PostViewHolder(view);
     }
 
+    @Override
     public void onBindViewHolder(@NonNull PostViewHolder holder, int position) {
         PostModel post = postList.get(position);
 
@@ -104,10 +108,19 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
         if (post.imageList != null && !post.imageList.isEmpty()) {
             holder.viewPagerImages.setVisibility(View.VISIBLE);
+
             ImagePagerAdapter adapter = new ImagePagerAdapter(context, post.imageList);
             holder.viewPagerImages.setAdapter(adapter);
+
+            if (post.imageList.size() > 1) {
+                holder.dotsIndicator.setVisibility(View.VISIBLE);
+                holder.dotsIndicator.setViewPager2(holder.viewPagerImages);
+            } else {
+                holder.dotsIndicator.setVisibility(View.GONE);
+            }
         } else {
             holder.viewPagerImages.setVisibility(View.GONE);
+            holder.dotsIndicator.setVisibility(View.GONE);
         }
 
         holder.ivLike.setImageResource(post.isLiked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
@@ -133,7 +146,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             context.startActivity(intent);
         });
 
-        // Menu 3 chấm
         SessionManager sessionManager = new SessionManager(context);
         if (post.userId == sessionManager.getUserId()) {
             holder.ivMenu.setVisibility(View.VISIBLE);
@@ -151,11 +163,12 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                                 .setTitle("Xác nhận xóa")
                                 .setMessage("Bạn có chắc chắn muốn xóa bài viết này không?")
                                 .setPositiveButton("Xóa", (dialog, which) -> {
-                                    PostDAO dao = new PostDAO();
+                                    PostDAO dao = new PostDAO(context);
                                     dao.deletePostById(post.id,
                                             () -> {
                                                 Toast.makeText(context, "Đã xóa bài viết", Toast.LENGTH_SHORT).show();
-                                                // reload adapter hoặc quay lại trang chủ nếu cần
+                                                postList.remove(holder.getAdapterPosition());
+                                                notifyItemRemoved(holder.getAdapterPosition());
                                             },
                                             e -> Toast.makeText(context, "Lỗi khi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                                     );
@@ -178,6 +191,9 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         return postList.size();
     }
 }
+
+
+
 
 
 

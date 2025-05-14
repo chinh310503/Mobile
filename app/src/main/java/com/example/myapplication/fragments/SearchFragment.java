@@ -2,34 +2,32 @@ package com.example.myapplication.fragments;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-import android.content.Intent;
-import android.app.Activity;
 import android.widget.TextView;
-
-import com.example.myapplication.Activity.SearchActivity;
-
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.myapplication.Activity.SearchActivity;
 import com.example.myapplication.Adapter.CafeAdapter;
 import com.example.myapplication.DAO.CafeSearchDAO;
 import com.example.myapplication.DAO.FavoriteCafeDAO;
@@ -43,7 +41,6 @@ import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -111,6 +108,38 @@ public class SearchFragment extends Fragment implements LocationListener {
         cafeAdapter = new CafeAdapter(cafeList, requireContext());
         recyclerView.setAdapter(cafeAdapter);
 
+        cafeAdapter.setOnCafeClickListener(cafe -> {
+            int cafeId = (int) cafe.getId();
+            int userId = sessionManager.getUserId();
+
+            SharedPreferences prefs = requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
+            prefs.edit()
+                    .putInt("selected_cafe_id", cafeId)
+                    .putInt("id_user", userId)
+                    .apply();
+
+            FeedFragment feedFragment = new FeedFragment();
+            Bundle bundle = new Bundle();
+            bundle.putInt("cafe_id", cafeId);
+            bundle.putString("cafe_name", cafe.getName());
+            feedFragment.setArguments(bundle);
+
+            View currentView = getView();
+            if (currentView != null && currentView.getParent() instanceof ViewGroup) {
+                int containerId = ((ViewGroup) currentView.getParent()).getId();
+                if (containerId != View.NO_ID) {
+                    FragmentTransaction transaction = requireActivity().getSupportFragmentManager().beginTransaction();
+                    transaction.replace(containerId, feedFragment);
+                    transaction.addToBackStack(null);
+                    transaction.commit();
+                } else {
+                    Log.e("SearchFragment", "ViewGroup parent has NO_ID – cần đặt id trong layout.");
+                }
+            } else {
+                Log.e("SearchFragment", "getView() hoặc parent null.");
+            }
+        });
+
         locationManager = (LocationManager) requireContext().getSystemService(Context.LOCATION_SERVICE);
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(requireActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
@@ -171,7 +200,6 @@ public class SearchFragment extends Fragment implements LocationListener {
 
         cafeAdapter.setOnFavoriteClickListener((cafe, isFavoriteNow) -> {
             long cafeId = cafe.getId();
-
             if (isFavoriteNow) {
                 cafeFavoriteDAO.addFavorite(cafeId);
             } else {
@@ -182,7 +210,7 @@ public class SearchFragment extends Fragment implements LocationListener {
         cafeFavoriteDAO.getFavoritesByUserId(new FavoriteCafeDAO.FavoriteListCallback() {
             @Override
             public void onSuccess(Set<Long> favoriteIds) {
-                cafeAdapter.setFavoriteCafes(favoriteIds); // Truyền danh sách này vào Adapter
+                cafeAdapter.setFavoriteCafes(favoriteIds);
                 cafeAdapter.notifyDataSetChanged();
             }
 
@@ -202,7 +230,6 @@ public class SearchFragment extends Fragment implements LocationListener {
             @Override
             public void onResult(List<CafeModel> allCafes) {
                 List<CafeModel> filtered = new ArrayList<>();
-
                 for (CafeModel cafe : allCafes) {
                     if (!keyword.isEmpty() && !cafe.getName().toLowerCase().contains(keyword.toLowerCase())) continue;
                     if (wifiSelected && !cafe.isWifiAvailable()) continue;
@@ -212,7 +239,6 @@ public class SearchFragment extends Fragment implements LocationListener {
                     if (currentPriceFilter > 0 && cafe.getMinPrice() > currentPriceFilter * 1000) continue;
                     filtered.add(cafe);
                 }
-
                 filtered.sort(Comparator.comparingDouble(CafeModel::getDistance));
                 cafeList.clear();
                 cafeList.addAll(filtered);
@@ -255,14 +281,6 @@ public class SearchFragment extends Fragment implements LocationListener {
         button.setTextColor(ContextCompat.getColor(requireContext(), selected ? R.color.filter_selected_text : R.color.black));
     }
 
-    @Override
-    public void onLocationChanged(@NonNull Location location) {
-        userLatitude = location.getLatitude();
-        userLongitude = location.getLongitude();
-        sessionManager.saveUserLocation(userLatitude, userLongitude);
-        loadFilteredCafes();
-    }
-
     private void updateFilterCount() {
         int count = 0;
         if (wifiSelected) count++;
@@ -281,6 +299,18 @@ public class SearchFragment extends Fragment implements LocationListener {
         }
     }
 
+    @Override public void onStatusChanged(String provider, int status, Bundle extras) {}
+    @Override public void onProviderEnabled(@NonNull String provider) {}
+    @Override public void onProviderDisabled(@NonNull String provider) {}
+
+    @Override
+    public void onLocationChanged(@NonNull Location location) {
+        userLatitude = location.getLatitude();
+        userLongitude = location.getLongitude();
+        sessionManager.saveUserLocation(userLatitude, userLongitude);
+        loadFilteredCafes();
+    }
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -292,9 +322,4 @@ public class SearchFragment extends Fragment implements LocationListener {
             }
         }
     }
-
-
-    @Override public void onStatusChanged(String provider, int status, Bundle extras) {}
-    @Override public void onProviderEnabled(@NonNull String provider) {}
-    @Override public void onProviderDisabled(@NonNull String provider) {}
 }
