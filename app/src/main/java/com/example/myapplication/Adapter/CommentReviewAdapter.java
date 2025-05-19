@@ -13,7 +13,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.myapplication.Model.CommentReviewModel;
 import com.example.myapplication.R;
-import com.google.firebase.Timestamp;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -24,10 +23,12 @@ public class CommentReviewAdapter extends RecyclerView.Adapter<CommentReviewAdap
 
     private final Context context;
     private final List<CommentReviewModel> commentList;
+    private final OnCommentInteractionListener listener;
 
-    public CommentReviewAdapter(Context context, List<CommentReviewModel> commentList) {
+    public CommentReviewAdapter(Context context, List<CommentReviewModel> commentList, OnCommentInteractionListener listener) {
         this.context = context;
         this.commentList = commentList;
+        this.listener = listener;
     }
 
     @NonNull
@@ -41,14 +42,14 @@ public class CommentReviewAdapter extends RecyclerView.Adapter<CommentReviewAdap
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         CommentReviewModel comment = commentList.get(position);
 
-        holder.txtUserName.setText(comment.getUserName());
-        holder.txtContent.setText(comment.getContent());
+        holder.tvUserName.setText(comment.getUserName() != null ? comment.getUserName() : "Người dùng");
+        holder.tvContent.setText(comment.getContent() != null ? comment.getContent() : "");
 
         if (comment.getCreatedAt() != null) {
             Date date = comment.getCreatedAt().toDate();
-            holder.txtTime.setText(getTimeAgo(date));
+            holder.tvTime.setText(getTimeAgo(date));
         } else {
-            holder.txtTime.setText("Vừa xong");
+            holder.tvTime.setText("Vừa xong");
         }
 
         if (comment.getUserAvatar() != null && !comment.getUserAvatar().isEmpty()) {
@@ -56,10 +57,29 @@ public class CommentReviewAdapter extends RecyclerView.Adapter<CommentReviewAdap
                     .load(comment.getUserAvatar())
                     .placeholder(R.drawable.ic_user)
                     .circleCrop()
-                    .into(holder.imgAvatar);
+                    .into(holder.ivAvatar);
         } else {
-            holder.imgAvatar.setImageResource(R.drawable.ic_user);
+            holder.ivAvatar.setImageResource(R.drawable.ic_user);
         }
+
+        // Xử lý số lượt thích (nếu có)
+        holder.tvLikeCount.setText(String.valueOf(comment.getLikeCount()));
+        holder.tvCommentCount.setText(comment.getReplyCount() + " bình luận");
+
+        // Click like
+        holder.ivLike.setImageResource(comment.isLiked() ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
+        holder.ivLike.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onLikeComment(comment);
+            }
+        });
+
+        // Click comment/reply
+        holder.tvCommentCount.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onReplyComment(comment);
+            }
+        });
     }
 
     @Override
@@ -68,15 +88,18 @@ public class CommentReviewAdapter extends RecyclerView.Adapter<CommentReviewAdap
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        ImageView imgAvatar;
-        TextView txtUserName, txtContent, txtTime;
+        ImageView ivAvatar, ivLike;
+        TextView tvUserName, tvContent, tvTime, tvLikeCount, tvCommentCount;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            imgAvatar = itemView.findViewById(R.id.imgAvatar);
-            txtUserName = itemView.findViewById(R.id.txtUserName);
-            txtContent = itemView.findViewById(R.id.txtContent);
-            txtTime = itemView.findViewById(R.id.txtTime);
+            ivAvatar = itemView.findViewById(R.id.ivAvatar);
+            ivLike = itemView.findViewById(R.id.ivLike);
+            tvUserName = itemView.findViewById(R.id.tvUserName);
+            tvContent = itemView.findViewById(R.id.tvContent);
+            tvTime = itemView.findViewById(R.id.tvTime);
+            tvLikeCount = itemView.findViewById(R.id.tvLikeCount);
+            tvCommentCount = itemView.findViewById(R.id.tvCommentCount);
         }
     }
 
@@ -91,5 +114,11 @@ public class CommentReviewAdapter extends RecyclerView.Adapter<CommentReviewAdap
         if (days < 7) return days + " ngày trước";
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
         return sdf.format(date);
+    }
+
+    // Giao diện tương tác nếu muốn xử lý like/comment/reply
+    public interface OnCommentInteractionListener {
+        void onLikeComment(CommentReviewModel comment);
+        void onReplyComment(CommentReviewModel comment);
     }
 }

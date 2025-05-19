@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.myapplication.Activity.CommentReviewActivity;
+import com.example.myapplication.Activity.EditReviewActivity;
 import com.example.myapplication.Model.ViewReviewModel;
 import com.example.myapplication.R;
 
@@ -53,7 +54,7 @@ public class ViewReviewAdapter extends RecyclerView.Adapter<ViewReviewAdapter.Vi
         holder.txtContent.setText(review.getContent());
         holder.ratingBar.setRating(review.getRating());
         holder.txtLikeCount.setText(String.valueOf(review.getLikeCount()));
-        holder.txtCommentCount.setText(String.valueOf(review.getComments()));
+        holder.txtCommentCount.setText(String.valueOf(review.getCommentCount()));
 
         if (review.getCreatedAt() != null) {
             Date date = review.getCreatedAt().toDate();
@@ -86,7 +87,7 @@ public class ViewReviewAdapter extends RecyclerView.Adapter<ViewReviewAdapter.Vi
 
         holder.btnComment.setOnClickListener(v -> {
             Intent intent = new Intent(context, CommentReviewActivity.class);
-            intent.putExtra("review_id", review.getId());
+            intent.putExtra("review_id", review.getReviewDocId());
             context.startActivity(intent);
         });
 
@@ -103,7 +104,9 @@ public class ViewReviewAdapter extends RecyclerView.Adapter<ViewReviewAdapter.Vi
                 if (listener == null) return false;
                 int id = item.getItemId();
                 if (id == R.id.action_edit) {
-                    listener.onEditClicked(review);
+                    Intent intent = new Intent(context, EditReviewActivity.class);
+                    intent.putExtra("review_id", review.getReviewDocId());
+                    context.startActivity(intent);
                     return true;
                 } else if (id == R.id.action_delete) {
                     listener.onDeleteClicked(review);

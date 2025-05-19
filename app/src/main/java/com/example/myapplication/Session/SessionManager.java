@@ -66,4 +66,14 @@ public class SessionManager {
         editor.clear();
         editor.apply();
     }
+
+    // ✅ Thêm hỗ trợ lưu key-value dạng int tùy chọn
+    public void setInt(String key, int value) {
+        editor.putInt(key, value);
+        editor.apply();
+    }
+
+    public int getInt(String key, int defaultValue) {
+        return sharedPreferences.getInt(key, defaultValue);
+    }
 }

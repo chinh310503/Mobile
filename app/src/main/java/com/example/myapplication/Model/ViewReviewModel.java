@@ -4,7 +4,8 @@ import com.google.firebase.Timestamp;
 import java.util.List;
 
 public class ViewReviewModel {
-    private String id;
+    private String id; // auto-increment id
+    private String reviewDocId; // 🔥 document ID trên Firestore
     private int userId;
     private String userName;
     private String userAvatar;
@@ -15,19 +16,18 @@ public class ViewReviewModel {
     private int comments;
     private List<String> imageUrls;
 
-    // Bổ sung các trường mới
     private boolean liked;
     private int likeCount;
 
     public ViewReviewModel() {
-        // Constructor rỗng cho Firestore
     }
 
-    public ViewReviewModel(String id, int userId, String userName, String userAvatar,
+    public ViewReviewModel(String id, String reviewDocId, int userId, String userName, String userAvatar,
                            int cafeId, String content, float rating,
                            Timestamp createdAt, int comments, List<String> imageUrls,
                            boolean liked, int likeCount) {
         this.id = id;
+        this.reviewDocId = reviewDocId;
         this.userId = userId;
         this.userName = userName;
         this.userAvatar = userAvatar;
@@ -47,6 +47,14 @@ public class ViewReviewModel {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getReviewDocId() {
+        return reviewDocId;
+    }
+
+    public void setReviewDocId(String reviewDocId) {
+        this.reviewDocId = reviewDocId;
     }
 
     public int getUserId() {
@@ -113,6 +121,11 @@ public class ViewReviewModel {
         this.comments = comments;
     }
 
+    // ✅ Bổ sung thêm hàm getCommentCount() để tương thích adapter
+    public int getCommentCount() {
+        return getComments();
+    }
+
     public List<String> getImageUrls() {
         return imageUrls;
     }
@@ -121,7 +134,6 @@ public class ViewReviewModel {
         this.imageUrls = imageUrls;
     }
 
-    // ✅ Getter / Setter cho like
     public boolean isLiked() {
         return liked;
     }

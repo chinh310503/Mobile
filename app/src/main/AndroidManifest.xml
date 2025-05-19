@@ -30,9 +30,10 @@
         <activity android:name=".Activity.CreatePostActivity" />
         <activity android:name=".Activity.SearchActivity" />
         <activity android:name=".Activity.CommentActivity" />
+        <activity android:name=".Activity.CommentReviewActivity" />
         <activity android:name=".Activity.EditPostActivity" />
         <activity android:name=".Activity.ReviewActivity" />
-
+        <activity android:name=".Activity.EditReviewActivity" />
     </application>
 
     <!-- Permissions -->

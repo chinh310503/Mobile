@@ -46,6 +46,7 @@ public class ReviewDAO {
                         Long reviewNumericId = doc.getLong("id");
                         Timestamp createdAt = doc.getTimestamp("created_at");
                         String content = doc.getString("content");
+                        String reviewDocId = doc.getId();
 
                         if (uid == null || cid == null || star == null || createdAt == null || reviewNumericId == null) {
                             if (completedCount.incrementAndGet() == total) {
@@ -56,6 +57,7 @@ public class ReviewDAO {
 
                         ViewReviewModel review = new ViewReviewModel();
                         review.setId(String.valueOf(reviewNumericId));
+                        review.setReviewDocId(reviewDocId);
                         review.setUserId(uid.intValue());
                         review.setCafeId(cid.intValue());
                         review.setRating(star.floatValue());
@@ -66,7 +68,7 @@ public class ReviewDAO {
                             review.setUserName((String) userInfo.get("name"));
                             review.setUserAvatar((String) userInfo.get("img"));
 
-                            loadReviewImages(doc.getId(), urls -> {
+                            loadReviewImages(reviewDocId, urls -> {
                                 review.setImageUrls(urls);
 
                                 getLikeCount(review.getId(), count -> {
@@ -75,7 +77,7 @@ public class ReviewDAO {
                                     checkIfUserLiked(review.getId(), userId, liked -> {
                                         review.setLiked(liked);
 
-                                        getCommentCount(review.getId(), commentCount -> {
+                                        getCommentCount(reviewDocId, commentCount -> {
                                             review.setComments(commentCount);
                                             list.add(review);
 
@@ -159,9 +161,9 @@ public class ReviewDAO {
         void onResult(boolean liked);
     }
 
-    private void getCommentCount(String reviewId, OnCountComplete listener) {
+    private void getCommentCount(String reviewDocId, OnCountComplete listener) {
         db.collection("review_comment")
-                .whereEqualTo("id_rate", Integer.parseInt(reviewId))
+                .whereEqualTo("review_id", reviewDocId)
                 .get()
                 .addOnSuccessListener(task -> {
                     listener.onComplete(task.size());
@@ -237,7 +239,6 @@ public class ReviewDAO {
                     data.put("created_at", Timestamp.now());
                     data.put("content", content);
 
-                    int finalNewId = newId;
                     db.collection("rate")
                             .add(data)
                             .addOnSuccessListener(documentReference -> {
@@ -250,19 +251,16 @@ public class ReviewDAO {
 
                                 List<String> uploaded = new ArrayList<>();
                                 for (Uri uri : imageUris) {
-                                    CloudinaryHelper.uploadImage(uri, context, new CloudinaryHelper.UploadImageCallback() {
-                                        @Override
-                                        public void onComplete(String url) {
-                                            if (url != null) {
-                                                Map<String, Object> imageData = new HashMap<>();
-                                                imageData.put("review_id", reviewDocId);
-                                                imageData.put("img", url);
-                                                db.collection("review_images").add(imageData);
-                                            }
-                                            uploaded.add("ok");
-                                            if (uploaded.size() == imageUris.size()) {
-                                                listener.onComplete(true);
-                                            }
+                                    CloudinaryHelper.uploadImage(uri, context, url -> {
+                                        if (url != null) {
+                                            Map<String, Object> imageData = new HashMap<>();
+                                            imageData.put("review_id", reviewDocId);
+                                            imageData.put("img", url);
+                                            db.collection("review_images").add(imageData);
+                                        }
+                                        uploaded.add("ok");
+                                        if (uploaded.size() == imageUris.size()) {
+                                            listener.onComplete(true);
                                         }
                                     });
                                 }

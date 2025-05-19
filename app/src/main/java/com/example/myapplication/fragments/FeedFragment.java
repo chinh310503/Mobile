@@ -80,17 +80,22 @@ public class FeedFragment extends Fragment {
 
             @Override
             public void onEditClicked(ViewReviewModel review) {
-                Toast.makeText(requireContext(), "Sửa đánh giá: " + review.getId(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "Chức năng chỉnh sửa chưa được triển khai", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onDeleteClicked(ViewReviewModel review) {
-                Toast.makeText(requireContext(), "Xoá đánh giá: " + review.getId(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "Chức năng xoá chưa được triển khai", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onReportClicked(ViewReviewModel review) {
-                Toast.makeText(requireContext(), "Đã báo cáo đánh giá: " + review.getId(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "Báo cáo đánh giá thành công", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public int getCurrentUserId() {
+                return sessionManager.getUserId();
             }
         });
 
@@ -99,7 +104,6 @@ public class FeedFragment extends Fragment {
 
         userId = sessionManager.getUserId();
 
-        // Nhận dữ liệu từ SearchFragment
         Bundle args = getArguments();
         if (args != null) {
             cafeId = args.getInt("cafe_id", -1);
@@ -122,6 +126,7 @@ public class FeedFragment extends Fragment {
         btnRate.setOnClickListener(v -> {
             Log.d("FeedFragment", "btnRate click - cafeId: " + cafeId + ", userId: " + userId);
             if (cafeId != -1 && userId != -1) {
+                sessionManager.setInt("selected_cafe_id", cafeId);
                 Intent intent = new Intent(requireContext(), ReviewActivity.class);
                 intent.putExtra("cafe_id", cafeId);
                 intent.putExtra("cafe_name", cafeName);
@@ -163,7 +168,7 @@ public class FeedFragment extends Fragment {
 
             @Override
             public void onFailure(Exception e) {
-                Toast.makeText(requireContext(), "Lỗi tải đánh giá", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "Lỗi tải đánh giá: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
