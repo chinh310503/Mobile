@@ -4,18 +4,17 @@ import com.google.firebase.Timestamp;
 
 public class CommentReviewModel {
     private String id;
-    private String reviewId; // Document ID của bài đánh giá (dạng String)
+    private String reviewId;
     private int userId;
     private String userName;
     private String userAvatar;
     private String content;
     private Timestamp createdAt;
 
-    private int likeCount;       // ✅ số lượt like
-    private int replyCount;      // ✅ số bình luận con (nếu có reply)
-    private boolean liked;       // ✅ trạng thái người dùng hiện tại đã like hay chưa
+    private int likeCount;
+    private int replyCount;
+    private boolean liked;
 
-    // Constructor rỗng cần cho Firebase
     public CommentReviewModel() {
     }
 
@@ -29,7 +28,6 @@ public class CommentReviewModel {
         this.createdAt = createdAt;
     }
 
-    // Getter & Setter cho trường cơ bản
     public String getId() {
         return id;
     }
@@ -86,7 +84,6 @@ public class CommentReviewModel {
         this.createdAt = createdAt;
     }
 
-    // Getter & Setter cho likeCount
     public int getLikeCount() {
         return likeCount;
     }
@@ -95,7 +92,6 @@ public class CommentReviewModel {
         this.likeCount = likeCount;
     }
 
-    // Getter & Setter cho replyCount
     public int getReplyCount() {
         return replyCount;
     }
@@ -104,7 +100,6 @@ public class CommentReviewModel {
         this.replyCount = replyCount;
     }
 
-    // Getter & Setter cho liked
     public boolean isLiked() {
         return liked;
     }

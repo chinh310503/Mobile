@@ -4,8 +4,8 @@ import com.google.firebase.Timestamp;
 import java.util.List;
 
 public class ViewReviewModel {
-    private String id; // auto-increment id
-    private String reviewDocId; // 🔥 document ID trên Firestore
+    private String id;
+    private String reviewDocId;
     private int userId;
     private String userName;
     private String userAvatar;
@@ -121,7 +121,6 @@ public class ViewReviewModel {
         this.comments = comments;
     }
 
-    // ✅ Bổ sung thêm hàm getCommentCount() để tương thích adapter
     public int getCommentCount() {
         return getComments();
     }

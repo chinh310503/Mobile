@@ -120,7 +120,6 @@ public class EditReviewActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Lỗi: " + e.getMessage(), Toast.LENGTH_SHORT).show());
 
-        // (Optional) xử lý upload thêm ảnh mới nếu có
         for (Uri uri : newImageUris) {
             CloudinaryHelper.uploadImage(uri, this, url -> {
                 if (url != null) {

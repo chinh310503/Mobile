@@ -67,7 +67,7 @@ public class SessionManager {
         editor.apply();
     }
 
-    // ✅ Thêm hỗ trợ lưu key-value dạng int tùy chọn
+
     public void setInt(String key, int value) {
         editor.putInt(key, value);
         editor.apply();

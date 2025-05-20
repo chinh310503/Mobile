@@ -94,6 +94,76 @@ public class ReviewDAO {
                 .addOnFailureListener(callback::onFailure);
     }
 
+    public void getReviewsByCafeIdRealtime(int cafeId, int userId, ReviewCallback callback) {
+        db.collection("rate")
+                .whereEqualTo("id_cafe", cafeId)
+                .orderBy("created_at", Query.Direction.DESCENDING)
+                .addSnapshotListener((snapshot, e) -> {
+                    if (e != null || snapshot == null) return;
+
+                    List<ViewReviewModel> list = new ArrayList<>();
+                    AtomicInteger completedCount = new AtomicInteger(0);
+                    int total = snapshot.size();
+
+                    if (total == 0) {
+                        callback.onSuccess(list);
+                        return;
+                    }
+
+                    for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        Long uid = doc.getLong("id_user");
+                        Long cid = doc.getLong("id_cafe");
+                        Double star = doc.getDouble("star");
+                        Long reviewNumericId = doc.getLong("id");
+                        Timestamp createdAt = doc.getTimestamp("created_at");
+                        String content = doc.getString("content");
+                        String reviewDocId = doc.getId();
+
+                        if (uid == null || cid == null || star == null || createdAt == null || reviewNumericId == null) {
+                            if (completedCount.incrementAndGet() == total) {
+                                callback.onSuccess(list);
+                            }
+                            continue;
+                        }
+
+                        ViewReviewModel review = new ViewReviewModel();
+                        review.setId(String.valueOf(reviewNumericId));
+                        review.setReviewDocId(reviewDocId);
+                        review.setUserId(uid.intValue());
+                        review.setCafeId(cid.intValue());
+                        review.setRating(star.floatValue());
+                        review.setCreatedAt(createdAt);
+                        review.setContent(content != null ? content : "");
+
+                        loadUserInfo(review.getUserId(), userInfo -> {
+                            review.setUserName((String) userInfo.get("name"));
+                            review.setUserAvatar((String) userInfo.get("img"));
+
+                            loadReviewImages(reviewDocId, urls -> {
+                                review.setImageUrls(urls);
+
+                                getLikeCount(review.getId(), count -> {
+                                    review.setLikeCount(count);
+
+                                    checkIfUserLiked(review.getId(), userId, liked -> {
+                                        review.setLiked(liked);
+
+                                        getCommentCount(reviewDocId, commentCount -> {
+                                            review.setComments(commentCount);
+                                            list.add(review);
+
+                                            if (completedCount.incrementAndGet() == total) {
+                                                callback.onSuccess(list);
+                                            }
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    }
+                });
+    }
+
     private void loadUserInfo(int userId, OnUserInfoListener listener) {
         db.collection("users")
                 .document(String.valueOf(userId))

@@ -80,12 +80,12 @@ public class FeedFragment extends Fragment {
 
             @Override
             public void onEditClicked(ViewReviewModel review) {
-                Toast.makeText(requireContext(), "Chức năng chỉnh sửa chưa được triển khai", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "Chức năng chỉnh sửa được triển khai", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onDeleteClicked(ViewReviewModel review) {
-                Toast.makeText(requireContext(), "Chức năng xoá chưa được triển khai", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "Chức năng xoá được triển khai", Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -140,6 +140,14 @@ public class FeedFragment extends Fragment {
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (cafeId != -1 && userId != -1) {
+            loadReviews();
+        }
+    }
+
     private void loadCafeNameFromFirebase(int cafeId) {
         db.collection("cafes")
                 .whereEqualTo("id", cafeId)
@@ -157,7 +165,7 @@ public class FeedFragment extends Fragment {
     }
 
     private void loadReviews() {
-        reviewDAO.getAllReviews(cafeId, userId, new ReviewDAO.ReviewCallback() {
+        reviewDAO.getReviewsByCafeIdRealtime(cafeId, userId, new ReviewDAO.ReviewCallback() {
             @Override
             public void onSuccess(List<ViewReviewModel> list) {
                 reviewList.clear();

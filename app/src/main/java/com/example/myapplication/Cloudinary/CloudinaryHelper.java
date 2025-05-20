@@ -26,12 +26,10 @@ public class CloudinaryHelper {
         }
     }
 
-    // ✅ Interface callback dùng trong ReviewDAO
     public interface UploadImageCallback {
         void onComplete(String url);
     }
 
-    // ✅ Hàm upload ảnh
     public static void uploadImage(Uri uri, Context context, UploadImageCallback callback) {
         init(context); // đảm bảo đã khởi tạo MediaManager
 
