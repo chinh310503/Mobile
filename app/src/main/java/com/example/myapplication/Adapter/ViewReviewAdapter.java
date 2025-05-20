@@ -21,6 +21,8 @@ import com.example.myapplication.Activity.CommentReviewActivity;
 import com.example.myapplication.Activity.EditReviewActivity;
 import com.example.myapplication.Model.ViewReviewModel;
 import com.example.myapplication.R;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -50,7 +52,31 @@ public class ViewReviewAdapter extends RecyclerView.Adapter<ViewReviewAdapter.Vi
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ViewReviewModel review = reviewList.get(position);
 
-        holder.txtUserName.setText(review.getUserName());
+        // ✅ Lấy thông tin người dùng từ Firestore theo userId và bo tròn avatar
+        FirebaseFirestore.getInstance().collection("users")
+                .whereEqualTo("id", review.getUserId())
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!querySnapshot.isEmpty()) {
+                        DocumentSnapshot doc = querySnapshot.getDocuments().get(0);
+                        String userName = doc.getString("name");
+                        String userImg = doc.getString("img");
+
+                        holder.txtUserName.setText(userName);
+                        if (userImg != null && !userImg.isEmpty()) {
+                            Glide.with(context)
+                                    .load(userImg)
+                                    .circleCrop() // ✅ Bo tròn avatar
+                                    .into(holder.imgAvatar);
+                        } else {
+                            holder.imgAvatar.setImageResource(R.drawable.default_avatar);
+                        }
+                    } else {
+                        holder.txtUserName.setText("Người dùng");
+                        holder.imgAvatar.setImageResource(R.drawable.default_avatar);
+                    }
+                });
+
         holder.txtContent.setText(review.getContent());
         holder.ratingBar.setRating(review.getRating());
         holder.txtLikeCount.setText(String.valueOf(review.getLikeCount()));
@@ -62,12 +88,6 @@ public class ViewReviewAdapter extends RecyclerView.Adapter<ViewReviewAdapter.Vi
             holder.txtTime.setText(formattedDate);
         } else {
             holder.txtTime.setText("Không rõ thời gian");
-        }
-
-        if (review.getUserAvatar() != null && !review.getUserAvatar().isEmpty()) {
-            Glide.with(context).load(review.getUserAvatar()).into(holder.imgAvatar);
-        } else {
-            holder.imgAvatar.setImageResource(R.drawable.default_avatar);
         }
 
         if (review.getImageUrls() != null && !review.getImageUrls().isEmpty()) {
