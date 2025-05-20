@@ -39,7 +39,9 @@ public class CafeModel implements Serializable {
     public double getLon() { return lon; }
     public void setLon(double lon) { this.lon = lon; }
 
-    public String getAddress() { return address; }
+    public String getAddress() {
+        return address != null ? address : "";
+    }
     public void setAddress(String address) { this.address = address; }
 
     public boolean isWifiAvailable() { return wifiAvailable; }
