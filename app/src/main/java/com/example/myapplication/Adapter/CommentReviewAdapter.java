@@ -2,9 +2,12 @@ package com.example.myapplication.Adapter;
 
 import android.content.Context;
 import android.view.LayoutInflater;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -13,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.myapplication.Model.CommentReviewModel;
 import com.example.myapplication.R;
+import com.example.myapplication.Session.SessionManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -24,11 +28,13 @@ public class CommentReviewAdapter extends RecyclerView.Adapter<CommentReviewAdap
     private final Context context;
     private final List<CommentReviewModel> commentList;
     private final OnCommentInteractionListener listener;
+    private final SessionManager sessionManager;
 
     public CommentReviewAdapter(Context context, List<CommentReviewModel> commentList, OnCommentInteractionListener listener) {
         this.context = context;
         this.commentList = commentList;
         this.listener = listener;
+        this.sessionManager = new SessionManager(context);
     }
 
     @NonNull
@@ -62,23 +68,35 @@ public class CommentReviewAdapter extends RecyclerView.Adapter<CommentReviewAdap
             holder.ivAvatar.setImageResource(R.drawable.ic_user);
         }
 
-        // Xử lý số lượt thích (nếu có)
-        holder.tvLikeCount.setText(String.valueOf(comment.getLikeCount()));
-        holder.tvCommentCount.setText(comment.getReplyCount() + " bình luận");
-
-        // Click like
-        holder.ivLike.setImageResource(comment.isLiked() ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
-        holder.ivLike.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onLikeComment(comment);
+        holder.ivMenu.setVisibility(View.VISIBLE);
+        holder.ivMenu.setOnClickListener(v -> {
+            PopupMenu popup = new PopupMenu(context, holder.ivMenu);
+            MenuInflater inflater = popup.getMenuInflater();
+            if (comment.getUserId() == sessionManager.getUserId()) {
+                inflater.inflate(R.menu.menu_review_owner, popup.getMenu());
+            } else {
+                inflater.inflate(R.menu.menu_review_other, popup.getMenu());
             }
-        });
 
-        // Click comment/reply
-        holder.tvCommentCount.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onReplyComment(comment);
-            }
+            popup.setOnMenuItemClickListener(item -> {
+                if (listener == null) return false;
+
+                int id = item.getItemId();
+                if (id == R.id.action_edit) {
+                    listener.onEditComment(comment, position);
+                    return true;
+                } else if (id == R.id.action_delete) {
+                    listener.onDeleteComment(comment, position);
+                    return true;
+                } else if (id == R.id.action_report) {
+                    listener.onReportComment(comment, position);
+                    return true;
+                }
+
+                return false;
+            });
+
+            popup.show();
         });
     }
 
@@ -88,18 +106,16 @@ public class CommentReviewAdapter extends RecyclerView.Adapter<CommentReviewAdap
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        ImageView ivAvatar, ivLike;
-        TextView tvUserName, tvContent, tvTime, tvLikeCount, tvCommentCount;
+        ImageView ivAvatar, ivMenu;
+        TextView tvUserName, tvContent, tvTime;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             ivAvatar = itemView.findViewById(R.id.ivAvatar);
-            ivLike = itemView.findViewById(R.id.ivLike);
+            ivMenu = itemView.findViewById(R.id.ivMenu);
             tvUserName = itemView.findViewById(R.id.tvUserName);
             tvContent = itemView.findViewById(R.id.tvContent);
             tvTime = itemView.findViewById(R.id.tvTime);
-            tvLikeCount = itemView.findViewById(R.id.tvLikeCount);
-            tvCommentCount = itemView.findViewById(R.id.tvCommentCount);
         }
     }
 
@@ -116,9 +132,9 @@ public class CommentReviewAdapter extends RecyclerView.Adapter<CommentReviewAdap
         return sdf.format(date);
     }
 
-    // Giao diện tương tác nếu muốn xử lý like/comment/reply
     public interface OnCommentInteractionListener {
-        void onLikeComment(CommentReviewModel comment);
-        void onReplyComment(CommentReviewModel comment);
+        void onEditComment(CommentReviewModel comment, int position);
+        void onDeleteComment(CommentReviewModel comment, int position);
+        void onReportComment(CommentReviewModel comment, int position);
     }
 }
