@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.myapplication.Adapter.CommentReviewAdapter;
+import com.example.myapplication.Adapter.ImageReviewAdapter;
 import com.example.myapplication.Model.CommentReviewModel;
 import com.example.myapplication.R;
 import com.example.myapplication.Session.SessionManager;
@@ -26,18 +27,14 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public class CommentReviewActivity extends AppCompatActivity {
 
-    private RecyclerView recyclerView;
+    private RecyclerView recyclerView, recyclerReviewImages;
     private CommentReviewAdapter adapter;
     private List<CommentReviewModel> commentList;
+    private List<String> reviewImageUrls;
     private EditText edtComment;
     private ImageButton btnSend;
     private FirebaseFirestore db;
@@ -46,7 +43,10 @@ public class CommentReviewActivity extends AppCompatActivity {
 
     private TextView tvReviewUserName, tvReviewContent, tvReviewTime, tvReviewLikeCount, tvReviewCommentCount;
     private RatingBar reviewRatingBar;
-    private ImageView imgReviewImage, imgReviewUserAvatar, imgCurrentUser;
+    private ImageView imgReviewUserAvatar, imgCurrentUser, iconReviewLike;
+
+    private boolean isLiked = false;
+    private int likeCount = 0;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -54,6 +54,7 @@ public class CommentReviewActivity extends AppCompatActivity {
         setContentView(R.layout.comment_review_activity);
 
         recyclerView = findViewById(R.id.rvComments);
+        recyclerReviewImages = findViewById(R.id.recyclerReviewImages);
         edtComment = findViewById(R.id.edtComment);
         btnSend = findViewById(R.id.btnSend);
         tvReviewUserName = findViewById(R.id.tvReviewUserName);
@@ -62,9 +63,9 @@ public class CommentReviewActivity extends AppCompatActivity {
         tvReviewLikeCount = findViewById(R.id.tvReviewLikeCount);
         tvReviewCommentCount = findViewById(R.id.tvReviewCommentCount);
         reviewRatingBar = findViewById(R.id.reviewRatingBar);
-        imgReviewImage = findViewById(R.id.imgReviewImage);
         imgReviewUserAvatar = findViewById(R.id.imgReviewUserAvatar);
         imgCurrentUser = findViewById(R.id.imgCurrentUser);
+        iconReviewLike = findViewById(R.id.iconReviewLike);
 
         db = FirebaseFirestore.getInstance();
         sessionManager = new SessionManager(this);
@@ -77,6 +78,7 @@ public class CommentReviewActivity extends AppCompatActivity {
         }
 
         commentList = new ArrayList<>();
+        reviewImageUrls = new ArrayList<>();
         adapter = new CommentReviewAdapter(this, commentList, new CommentReviewAdapter.OnCommentInteractionListener() {
             @Override
             public void onEditComment(CommentReviewModel comment, int position) {
@@ -97,79 +99,146 @@ public class CommentReviewActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
+        recyclerReviewImages.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+
         loadReviewInfo();
         loadComments();
         setCurrentUserAvatar();
 
         btnSend.setOnClickListener(v -> sendComment());
+
+        iconReviewLike.setOnClickListener(v -> toggleLike());
     }
 
     private void loadReviewInfo() {
-        db.collection("rate").document(reviewId).get()
-                .addOnSuccessListener(doc -> {
-                    if (!doc.exists()) {
-                        Toast.makeText(this, "Bài đánh giá không tồn tại", Toast.LENGTH_SHORT).show();
-                        finish();
-                        return;
-                    }
+        db.collection("rate").document(reviewId).get().addOnSuccessListener(doc -> {
+            if (!doc.exists()) {
+                Toast.makeText(this, "Bài đánh giá không tồn tại", Toast.LENGTH_SHORT).show();
+                finish();
+                return;
+            }
 
-                    tvReviewContent.setText(doc.getString("content") != null ? doc.getString("content") : "");
-                    Timestamp createdAt = doc.getTimestamp("created_at");
-                    tvReviewTime.setText(createdAt != null ? new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(createdAt.toDate()) : "");
+            tvReviewContent.setText(doc.getString("content") != null ? doc.getString("content") : "");
+            Timestamp createdAt = doc.getTimestamp("created_at");
+            tvReviewTime.setText(createdAt != null ? new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(createdAt.toDate()) : "");
 
-                    Double rating = doc.getDouble("star");
-                    reviewRatingBar.setRating(rating != null ? rating.floatValue() : 0);
+            Double rating = doc.getDouble("star");
+            reviewRatingBar.setRating(rating != null ? rating.floatValue() : 0);
 
-                    Long idUser = doc.getLong("id_user");
-                    if (idUser != null) {
-                        db.collection("users").whereEqualTo("id", idUser.intValue()).limit(1).get()
-                                .addOnSuccessListener(snapshot -> {
-                                    if (!snapshot.isEmpty()) {
-                                        DocumentSnapshot userDoc = snapshot.getDocuments().get(0);
-                                        tvReviewUserName.setText(userDoc.getString("name"));
-                                        String avatarUrl = userDoc.getString("img");
-                                        if (avatarUrl != null && !avatarUrl.isEmpty()) {
-                                            Glide.with(this).load(avatarUrl).circleCrop().into(imgReviewUserAvatar);
-                                        } else {
-                                            imgReviewUserAvatar.setImageResource(R.drawable.default_avatar);
-                                        }
-                                    }
-                                });
-                    }
-
-                    db.collection("review_images").whereEqualTo("review_id", reviewId).limit(1).get()
-                            .addOnSuccessListener(snapshot -> {
-                                if (!snapshot.isEmpty()) {
-                                    String imgUrl = snapshot.getDocuments().get(0).getString("img");
-                                    if (imgUrl != null && !imgUrl.isEmpty()) {
-                                        imgReviewImage.setVisibility(ImageView.VISIBLE);
-                                        Glide.with(this).load(imgUrl).into(imgReviewImage);
-                                    } else {
-                                        imgReviewImage.setVisibility(ImageView.GONE);
-                                    }
+            Long idUser = doc.getLong("id_user");
+            if (idUser != null) {
+                db.collection("users").whereEqualTo("id", idUser.intValue()).limit(1).get()
+                        .addOnSuccessListener(snapshot -> {
+                            if (!snapshot.isEmpty()) {
+                                DocumentSnapshot userDoc = snapshot.getDocuments().get(0);
+                                tvReviewUserName.setText(userDoc.getString("name"));
+                                String avatarUrl = userDoc.getString("img");
+                                if (avatarUrl != null && !avatarUrl.isEmpty()) {
+                                    Glide.with(this).load(avatarUrl).circleCrop().into(imgReviewUserAvatar);
                                 } else {
-                                    imgReviewImage.setVisibility(ImageView.GONE);
+                                    imgReviewUserAvatar.setImageResource(R.drawable.default_avatar);
                                 }
-                            });
+                            }
+                        });
+            }
 
-                    try {
-                        int intReviewId = Integer.parseInt(reviewId);
-                        db.collection("review_interact")
-                                .whereEqualTo("id_rate", intReviewId)
-                                .whereEqualTo("likes", true).get()
-                                .addOnSuccessListener(snapshot -> tvReviewLikeCount.setText(String.valueOf(snapshot.size())));
-                    } catch (NumberFormatException e) {
-                        tvReviewLikeCount.setText("0");
-                    }
+            db.collection("review_images").whereEqualTo("review_id", reviewId).get()
+                    .addOnSuccessListener(snapshot -> {
+                        reviewImageUrls.clear();
+                        for (DocumentSnapshot docImg : snapshot.getDocuments()) {
+                            String imgUrl = docImg.getString("img");
+                            if (imgUrl != null && !imgUrl.isEmpty()) {
+                                reviewImageUrls.add(imgUrl);
+                            }
+                        }
+                        if (!reviewImageUrls.isEmpty()) {
+                            recyclerReviewImages.setVisibility(RecyclerView.VISIBLE);
+                            recyclerReviewImages.setAdapter(new ImageReviewAdapter(this, reviewImageUrls));
+                        } else {
+                            recyclerReviewImages.setVisibility(RecyclerView.GONE);
+                        }
+                    });
 
-                    db.collection("review_comment").whereEqualTo("review_id", reviewId).get()
-                            .addOnSuccessListener(snapshot -> tvReviewCommentCount.setText(snapshot.size() + " bình luận"));
-                });
+            updateLikeInfo();
+            updateCommentCount();
+        });
+    }
+
+    private void updateLikeInfo() {
+        try {
+            int userId = sessionManager.getUserId();
+            int intReviewId = Integer.parseInt(reviewId);
+            db.collection("review_interact")
+                    .whereEqualTo("id_rate", intReviewId)
+                    .get()
+                    .addOnSuccessListener(snapshot -> {
+                        likeCount = 0;
+                        isLiked = false;
+                        for (DocumentSnapshot doc : snapshot) {
+                            Boolean liked = doc.getBoolean("likes");
+                            Long uid = doc.getLong("id_user");
+                            if (liked != null && liked) {
+                                likeCount++;
+                                if (uid != null && uid.intValue() == userId) {
+                                    isLiked = true;
+                                }
+                            }
+                        }
+                        tvReviewLikeCount.setText(String.valueOf(likeCount));
+                        iconReviewLike.setImageResource(isLiked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
+                    });
+        } catch (NumberFormatException e) {
+            tvReviewLikeCount.setText("0");
+        }
+    }
+
+    private void toggleLike() {
+        int userId = sessionManager.getUserId();
+        try {
+            int intReviewId = Integer.parseInt(reviewId);
+            db.collection("review_interact")
+                    .whereEqualTo("id_rate", intReviewId)
+                    .whereEqualTo("id_user", userId)
+                    .get()
+                    .addOnSuccessListener(snapshot -> {
+                        if (!snapshot.isEmpty()) {
+                            String docId = snapshot.getDocuments().get(0).getId();
+                            boolean newLikeStatus = !isLiked;
+                            db.collection("review_interact").document(docId)
+                                    .update("likes", newLikeStatus)
+                                    .addOnSuccessListener(unused -> {
+                                        isLiked = newLikeStatus;
+                                        likeCount += isLiked ? 1 : -1;
+                                        iconReviewLike.setImageResource(isLiked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
+                                        tvReviewLikeCount.setText(String.valueOf(likeCount));
+                                    });
+                        } else {
+                            Map<String, Object> data = new HashMap<>();
+                            data.put("id_rate", intReviewId);
+                            data.put("id_user", userId);
+                            data.put("likes", true);
+                            db.collection("review_interact").add(data)
+                                    .addOnSuccessListener(unused -> {
+                                        isLiked = true;
+                                        likeCount++;
+                                        iconReviewLike.setImageResource(R.drawable.ic_heart_filled);
+                                        tvReviewLikeCount.setText(String.valueOf(likeCount));
+                                    });
+                        }
+                    });
+        } catch (NumberFormatException ignored) {}
+    }
+
+    private void updateCommentCount() {
+        db.collection("review_comment").whereEqualTo("review_id", reviewId).get()
+                .addOnSuccessListener(snapshot -> tvReviewCommentCount.setText(snapshot.size() + " bình luận"));
     }
 
     private void loadComments() {
         db.collection("review_comment")
-                .whereEqualTo("review_id", reviewId).orderBy("created_at").addSnapshotListener((snapshot, e) -> {
+                .whereEqualTo("review_id", reviewId)
+                .orderBy("created_at")
+                .addSnapshotListener((snapshot, e) -> {
                     if (e != null || snapshot == null) return;
                     commentList.clear();
                     for (DocumentSnapshot doc : snapshot.getDocuments()) {
